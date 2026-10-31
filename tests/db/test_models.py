@@ -6,15 +6,8 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.db.models import (
-    Category,
-    CategorySource,
-    Event,
-    MerchantRule,
-    Transaction,
-    User,
-    UserRole,
-)
+from app.db.models import Category, Event, MerchantRule, Transaction, User
+from app.domain.enums import CategorySource, UserRole
 
 
 def make_user(session: Session, email: str = "anna@example.com") -> User:

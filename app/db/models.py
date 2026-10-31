@@ -18,24 +18,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
-
-
-class UserRole(StrEnum):
-    USER = "user"
-    ADMIN = "admin"
-
-
-class CategoryKind(StrEnum):
-    EXPENSE = "expense"
-    INCOME = "income"
-
-
-class CategorySource(StrEnum):
-    """Where a transaction's category came from — the basis of the "manual fixes" metric."""
-
-    BANK = "bank"
-    HISTORY = "history"
-    MANUAL = "manual"
+from app.domain.enums import CategoryKind, CategorySource, UserRole
 
 
 def _str_enum(enum_cls: type[StrEnum]) -> Enum:
