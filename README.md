@@ -38,7 +38,9 @@ make check      # всё сразу — то же, что проверяет CI
 ```bash
 make migrate                                            # применить новые миграции
 docker compose exec app alembic downgrade -1            # откатить последнюю
-uv run alembic revision --autogenerate -m "описание"    # создать миграцию после изменения моделей
+# создать миграцию после изменения моделей (с хоста база доступна как localhost, а не db)
+DATABASE_URL=postgresql+psycopg://moneta:<пароль>@localhost:5432/moneta \
+  uv run alembic revision --autogenerate -m "описание"
 ```
 
 Для `make test` должен быть запущен контейнер с базой (`make up`): тесты создают отдельную базу `moneta_test`.
