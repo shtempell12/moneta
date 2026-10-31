@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Регистрация — Монета{% endblock %}
+{% block content %}
+<div class="card narrow">
+  <h1>Регистрация</h1>
+  {% if error %}<div class="error">{{ error }}</div>{% endif %}
+  <form method="post" action="/register">
+    <label>Email
+      <input type="email" name="email" value="{{ email or '' }}" required autocomplete="email">
+    </label>
+    <label>Пароль (не короче 8 символов)
+      <input type="password" name="password" required minlength="8" autocomplete="new-password">
+    </label>
+    <label class="checkbox">
+      <input type="checkbox" name="pd_consent" value="yes" required>
+      <span>Я даю согласие на обработку моих персональных данных</span>
+    </label>
+    <button type="submit">Зарегистрироваться</button>
+  </form>
+  <p class="muted">Уже есть аккаунт? <a href="/login">Войти</a></p>
+</div>
+{% endblock %}
