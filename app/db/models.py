@@ -47,6 +47,20 @@ class User(Base):
     created_at: Mapped[datetime] = _created_at()
 
 
+class UserSession(Base):
+    """A logged-in browser. The cookie holds a random token; only its hash is stored here."""
+
+    __tablename__ = "user_sessions"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    # Every form of a logged-in user must send this token back (CSRF protection).
+    csrf_token: Mapped[str] = mapped_column(String(64))
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = _created_at()
+
+
 class Category(Base):
     __tablename__ = "categories"
     __table_args__ = (UniqueConstraint("user_id", "name"),)
