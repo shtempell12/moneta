@@ -1,10 +1,11 @@
 from dataclasses import dataclass
 from typing import Annotated
 
-from fastapi import Depends, Request, Response
+from fastapi import Depends, HTTPException, Request, Response
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
+from app.core.security import tokens_match
 from app.db.models import User
 from app.db.session import get_session
 from app.services import auth
@@ -45,3 +46,18 @@ def set_session_cookie(response: Response, token: str) -> None:
         samesite="lax",
         secure=get_settings().app_env != "dev",
     )
+
+
+def require_user(current: OptionalUser) -> CurrentUser:
+    """Dependency for pages that need a logged-in user: guests are sent to the login page."""
+    if current is None:
+        raise HTTPException(status_code=303, headers={"Location": "/login"})
+    return current
+
+
+RequiredUser = Annotated[CurrentUser, Depends(require_user)]
+
+
+def check_csrf(current: CurrentUser, received_token: str) -> None:
+    if not tokens_match(current.csrf_token, received_token):
+        raise HTTPException(status_code=403, detail="CSRF check failed")
