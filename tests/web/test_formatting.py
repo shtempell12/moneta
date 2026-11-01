@@ -1,6 +1,8 @@
 from decimal import Decimal
 
-from app.web.templating import format_rub
+import pytest
+
+from app.web.templating import format_rub, plural
 
 
 def test_rub_uses_russian_separators() -> None:
@@ -11,3 +13,12 @@ def test_rub_uses_russian_separators() -> None:
 def test_rub_shows_plus_for_income_when_asked() -> None:
     assert format_rub(Decimal("100"), signed=True) == "+100,00 ₽"
     assert format_rub(Decimal("0"), signed=True) == "0,00 ₽"
+
+
+@pytest.mark.parametrize(
+    ("count", "word"),
+    [(1, "операция"), (2, "операции"), (5, "операций"), (11, "операций"), (21, "операция"),
+     (22, "операции"), (112, "операций")],
+)  # fmt: skip
+def test_plural(count: int, word: str) -> None:
+    assert plural(count, "операция", "операции", "операций") == word

@@ -23,7 +23,17 @@ def format_rub(amount: Decimal, signed: bool = False) -> str:
     return f"{sign}{groups},{kopecks} ₽"
 
 
+def plural(count: int, one: str, few: str, many: str) -> str:
+    """Russian plural form: 1 операция, 2 операции, 5 операций, 21 операция, 11 операций."""
+    if count % 10 == 1 and count % 100 != 11:
+        return one
+    if count % 10 in (2, 3, 4) and count % 100 not in (12, 13, 14):
+        return few
+    return many
+
+
 templates.env.filters["rub"] = format_rub
+templates.env.filters["plural"] = plural
 templates.env.filters["month_title"] = month_title
 templates.env.filters["month_param"] = month_param
 templates.env.globals["source_labels"] = SOURCE_LABELS

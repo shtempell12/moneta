@@ -10,11 +10,11 @@
     <div class="stat"><div class="muted">Без категории</div><div class="value">{{ result.by_source.get("none", 0) }}</div></div>
   </div>
   {% if result.duplicates %}
-  <p class="muted">{{ result.duplicates }} операций уже были загружены раньше — пропустили, чтобы не задвоить траты.</p>
+  <p class="muted">{{ result.duplicates }} {{ result.duplicates | plural('операция уже была загружена', 'операции уже были загружены', 'операций уже были загружены') }} раньше — пропустили, чтобы не задвоить траты.</p>
   {% endif %}
   {% if result.errors %}
   <div class="error">
-    Не смогли разобрать {{ result.errors | length }} строк:
+    Не смогли разобрать {{ result.errors | length }} {{ result.errors | length | plural('строку', 'строки', 'строк') }}:
     {% for error in result.errors[:5] %}<br>строка {{ error.line }}: {{ error.message }}{% endfor %}
   </div>
   {% endif %}
