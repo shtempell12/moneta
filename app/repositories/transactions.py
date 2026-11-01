@@ -1,3 +1,4 @@
+from collections import Counter
 from datetime import date
 from decimal import Decimal
 
@@ -7,13 +8,14 @@ from sqlalchemy.orm import Session
 from app.db.models import Category, Transaction
 from app.domain.enums import CategorySource
 
-# A statement row is considered already imported if all three fields match.
+# A statement row matches an imported transaction if all three fields are equal.
 DuplicateKey = tuple[date, Decimal, str]
 
 
-def existing_keys(
+def existing_key_counts(
     session: Session, user_id: int, first_day: date, last_day: date
-) -> set[DuplicateKey]:
+) -> Counter[DuplicateKey]:
+    """How many transactions with each (date, amount, description) the user already has."""
     rows = session.execute(
         select(Transaction.date, Transaction.amount, Transaction.description).where(
             Transaction.user_id == user_id,
@@ -21,7 +23,7 @@ def existing_keys(
             Transaction.date <= last_day,
         )
     )
-    return {(row.date, row.amount, row.description) for row in rows}
+    return Counter((row.date, row.amount, row.description) for row in rows)
 
 
 def list_with_category(

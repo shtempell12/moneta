@@ -61,6 +61,28 @@ def test_same_file_imported_twice_does_not_double_spending(session: Session, use
     assert len(session.scalars(select(Transaction)).all()) == 2
 
 
+def test_identical_rides_on_one_day_are_all_imported(session: Session, user_id: int) -> None:
+    rides = statement(row(1, "-63", "МЕТРО"), row(1, "-63", "МЕТРО"), row(1, "-63", "МЕТРО"))
+
+    first = import_statement(session, user_id, "october.csv", rides)
+    again = import_statement(session, user_id, "october.csv", rides)
+
+    assert (first.imported, again.imported, again.duplicates) == (3, 0, 3)
+
+
+def test_overlapping_statement_adds_only_new_rows(session: Session, user_id: int) -> None:
+    import_statement(session, user_id, "1-15.csv", statement(row(1, "-63", "МЕТРО")))
+
+    result = import_statement(
+        session,
+        user_id,
+        "1-31.csv",
+        statement(row(1, "-63", "МЕТРО"), row(1, "-63", "МЕТРО"), row(20, "-500", "КАФЕ")),
+    )
+
+    assert (result.imported, result.duplicates) == (2, 1)
+
+
 def test_import_is_logged_as_event_with_counts(session: Session, user_id: int) -> None:
     parsed = ParsedStatement(
         rows=[row(1, "-100", "ПЯТЕРОЧКА", "Супермаркеты")],

@@ -27,15 +27,16 @@ def import_statement(
     """Save statement rows as transactions with automatically chosen categories.
 
     Rows that were already imported (same date, amount and description) are skipped,
-    so uploading the same file twice does not double the spending.
+    so uploading the same file twice does not double the spending. Identical rows are
+    counted, not just matched: two metro rides for 63 ₽ on one day are two transactions.
     """
     rows = statement.rows
     already_imported = (
-        transactions.existing_keys(
+        transactions.existing_key_counts(
             session, user_id, min(row.date for row in rows), max(row.date for row in rows)
         )
         if rows
-        else set()
+        else Counter()
     )
     categorizer = build_categorizer(session, user_id)
     statement_import = Import(user_id=user_id, file_name=file_name[:255])
@@ -46,10 +47,10 @@ def import_statement(
     duplicates = 0
     for row in rows:
         key = (row.date, row.amount, row.description[:500])
-        if key in already_imported:
+        if already_imported[key] > 0:
+            already_imported[key] -= 1
             duplicates += 1
             continue
-        already_imported.add(key)
         merchant = merchant_key(row.description)[:255]
         prediction = categorizer.predict(TransactionFeatures(merchant, row.bank_category))
         session.add(
