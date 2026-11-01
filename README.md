@@ -14,7 +14,7 @@ Python 3.12, FastAPI, PostgreSQL 16, Docker Compose. Зависимости — 
 
 ```bash
 cp .env.example .env    # затем поменяй пароли в .env
-make up                 # поднимает app + Postgres
+make up                 # поднимает app + Postgres и применяет миграции
 curl localhost:8000/health
 ```
 
@@ -30,6 +30,20 @@ make format     # автоформатирование
 make typecheck  # mypy
 make check      # всё сразу — то же, что проверяет CI
 ```
+
+## Миграции
+
+Структура базы описана в `app/db/models.py`, её версии — в `migrations/versions/`.
+
+```bash
+make migrate                                            # применить новые миграции
+docker compose exec app alembic downgrade -1            # откатить последнюю
+# создать миграцию после изменения моделей (с хоста база доступна как localhost, а не db)
+DATABASE_URL=postgresql+psycopg://moneta:<пароль>@localhost:5432/moneta \
+  uv run alembic revision --autogenerate -m "описание"
+```
+
+Для `make test` должен быть запущен контейнер с базой (`make up`): тесты создают отдельную базу `moneta_test`.
 
 ## Бэкап базы
 

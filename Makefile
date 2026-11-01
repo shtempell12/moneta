@@ -1,7 +1,8 @@
-.PHONY: up down logs test lint format typecheck check backup restore
+.PHONY: up down logs migrate test lint format typecheck check backup restore
 
 up:
 	docker compose up -d --build
+	$(MAKE) migrate
 
 down:
 	docker compose down
@@ -9,6 +10,10 @@ down:
 logs:
 	docker compose logs -f app
 
+migrate:
+	docker compose exec app alembic upgrade head
+
+# Needs the database container running (make up).
 test:
 	uv run pytest
 

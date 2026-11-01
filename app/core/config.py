@@ -9,7 +9,8 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     app_env: str = "dev"
-    database_url: str = "postgresql://moneta:moneta@localhost:5432/moneta"
+    database_url: str = "postgresql+psycopg://moneta:moneta@localhost:5432/moneta"
+    test_database_url: str = "postgresql+psycopg://moneta:moneta@localhost:5432/moneta_test"
 
 
 # Cached so the .env file is read once per process, not on every request.
