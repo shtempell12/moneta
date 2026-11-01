@@ -18,7 +18,7 @@ make up                 # поднимает app + Postgres и применяе�
 curl localhost:8000/health
 ```
 
-Документация API: http://localhost:8000/docs
+Сайт: http://localhost:8000 (регистрация, вход). Документация API: http://localhost:8000/docs
 
 ## Разработка
 

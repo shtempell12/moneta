@@ -18,24 +18,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
-
-
-class UserRole(StrEnum):
-    USER = "user"
-    ADMIN = "admin"
-
-
-class CategoryKind(StrEnum):
-    EXPENSE = "expense"
-    INCOME = "income"
-
-
-class CategorySource(StrEnum):
-    """Where a transaction's category came from — the basis of the "manual fixes" metric."""
-
-    BANK = "bank"
-    HISTORY = "history"
-    MANUAL = "manual"
+from app.domain.enums import CategoryKind, CategorySource, UserRole
 
 
 def _str_enum(enum_cls: type[StrEnum]) -> Enum:
@@ -61,6 +44,20 @@ class User(Base):
     role: Mapped[UserRole] = mapped_column(_str_enum(UserRole), default=UserRole.USER)
     # Consent to personal data processing (152-FZ) is required to register.
     pd_consent_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = _created_at()
+
+
+class UserSession(Base):
+    """A logged-in browser. The cookie holds a random token; only its hash is stored here."""
+
+    __tablename__ = "user_sessions"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    # Every form of a logged-in user must send this token back (CSRF protection).
+    csrf_token: Mapped[str] = mapped_column(String(64))
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = _created_at()
 
 

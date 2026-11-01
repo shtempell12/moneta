@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block header_right %}
+<form method="post" action="/logout">
+  <span class="muted">{{ user.email }}</span>&nbsp;
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <button type="submit" class="link">Выйти</button>
+</form>
+{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>Ваши категории</h1>
+  <p class="muted">Траты из выписки будут раскладываться по этим категориям. Скоро их можно будет менять.</p>
+  <ul class="tags">
+    {% for category in categories %}<li>{{ category.name }}</li>{% endfor %}
+  </ul>
+</div>
+{% endblock %}
