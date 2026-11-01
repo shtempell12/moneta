@@ -1,5 +1,5 @@
 {% if also_changed %}
-<div class="notice">Запомнили. Ещё {{ also_changed }} {{ also_changed | plural('операция', 'операции', 'операций') }} этого магазина {{ 'получила' if also_changed | plural('1', '2', '5') == '1' else 'получили' }} ту же категорию.</div>
+<div class="notice">Запомнили. Ещё {{ also_changed }} {{ also_changed | plural('операция', 'операции', 'операций') }} этого магазина теперь в той же категории.</div>
 {% elif changed_id %}
 <div class="notice">Запомнили категорию для этого магазина.</div>
 {% endif %}
