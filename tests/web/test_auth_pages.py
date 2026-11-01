@@ -1,36 +1,7 @@
-import re
-from collections.abc import Iterator
-
-import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy.orm import Session
 
-from app.db.session import get_session
-from app.main import app
 from app.web.session import SESSION_COOKIE
-
-EMAIL = "anna@mail.ru"
-PASSWORD = "надёжный-пароль"
-
-
-@pytest.fixture
-def client(session: Session) -> Iterator[TestClient]:
-    app.dependency_overrides[get_session] = lambda: session
-    yield TestClient(app)
-    app.dependency_overrides.clear()
-
-
-def register(client: TestClient, consent: bool = True) -> str:
-    form = {"email": EMAIL, "password": PASSWORD}
-    if consent:
-        form["pd_consent"] = "yes"
-    return client.post("/register", data=form).text
-
-
-def csrf_token(page: str) -> str:
-    match = re.search(r'name="csrf_token" value="([^"]+)"', page)
-    assert match, "page has no CSRF token"
-    return match.group(1)
+from tests.web.conftest import EMAIL, PASSWORD, csrf_token, register
 
 
 def test_home_redirects_guests_to_login(client: TestClient) -> None:
@@ -40,11 +11,11 @@ def test_home_redirects_guests_to_login(client: TestClient) -> None:
     assert response.headers["location"] == "/login"
 
 
-def test_registration_shows_home_with_default_categories(client: TestClient) -> None:
+def test_registration_leads_to_dashboard(client: TestClient) -> None:
     page = register(client)
 
     assert EMAIL in page
-    assert "Продукты" in page
+    assert "Загрузить выписку" in page
 
 
 def test_session_cookie_is_http_only(client: TestClient) -> None:
@@ -84,7 +55,7 @@ def test_login_after_registration(client: TestClient) -> None:
 
     page = client.post("/login", data={"email": EMAIL, "password": PASSWORD}).text
 
-    assert "Ваши категории" in page
+    assert "Выйти" in page
 
 
 def test_logout_without_csrf_token_is_forbidden(client: TestClient) -> None:
@@ -93,7 +64,7 @@ def test_logout_without_csrf_token_is_forbidden(client: TestClient) -> None:
     response = client.post("/logout", data={"csrf_token": "forged"})
 
     assert response.status_code == 403
-    assert "Ваши категории" in client.get("/").text
+    assert "Выйти" in client.get("/").text
 
 
 def test_logout_with_csrf_token_ends_session(client: TestClient) -> None:

@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Траты — Монета{% endblock %}
+{% block content %}
+{% include "_month_switch.html" %}
+<div class="card">
+  <h1>Траты: {{ month | month_title }}</h1>
+  <p class="muted">Поправьте категорию — Монета запомнит выбор для этого магазина и применит его к остальным операциям.</p>
+  <div id="transactions">{% include "_transactions_table.html" %}</div>
+</div>
+{% endblock %}

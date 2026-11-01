@@ -4,7 +4,6 @@ from fastapi import APIRouter, Form, HTTPException, Request, Response
 from fastapi.responses import RedirectResponse
 
 from app.core.security import tokens_match
-from app.repositories import categories
 from app.services import auth
 from app.services.auth import AuthError
 from app.web.session import SESSION_COOKIE, DbSession, OptionalUser, set_session_cookie
@@ -16,21 +15,6 @@ router = APIRouter()
 def _redirect(url: str) -> RedirectResponse:
     # 303 makes the browser follow up with GET, so refreshing the page does not resend the form.
     return RedirectResponse(url, status_code=303)
-
-
-@router.get("/")
-def home(request: Request, db: DbSession, current: OptionalUser) -> Response:
-    if current is None:
-        return _redirect("/login")
-    return templates.TemplateResponse(
-        request,
-        "home.html",
-        {
-            "user": current.user,
-            "csrf_token": current.csrf_token,
-            "categories": categories.list_for_user(db, current.user.id),
-        },
-    )
 
 
 @router.get("/register")

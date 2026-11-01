@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Выписка загружена — Монета{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>Выписка загружена</h1>
+  <div class="stats">
+    <div class="stat"><div class="muted">Новых операций</div><div class="value">{{ result.imported }}</div></div>
+    <div class="stat"><div class="muted">По вашей истории</div><div class="value">{{ result.by_source.get("history", 0) }}</div></div>
+    <div class="stat"><div class="muted">По категории банка</div><div class="value">{{ result.by_source.get("bank", 0) }}</div></div>
+    <div class="stat"><div class="muted">Без категории</div><div class="value">{{ result.by_source.get("none", 0) }}</div></div>
+  </div>
+  {% if result.duplicates %}
+  <p class="muted">{{ result.duplicates }} операций уже были загружены раньше — пропустили, чтобы не задвоить траты.</p>
+  {% endif %}
+  {% if result.errors %}
+  <div class="error">
+    Не смогли разобрать {{ result.errors | length }} строк:
+    {% for error in result.errors[:5] %}<br>строка {{ error.line }}: {{ error.message }}{% endfor %}
+  </div>
+  {% endif %}
+  {% if result.latest_month %}
+  <a class="button" href="/transactions?month={{ month_param }}">Посмотреть и поправить траты</a>
+  {% endif %}
+</div>
+{% endblock %}
