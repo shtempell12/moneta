@@ -1,7 +1,7 @@
 from datetime import date
 from decimal import Decimal
 
-from sqlalchemy import distinct, func, select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
 from app.db.models import Category, Transaction
@@ -72,6 +72,6 @@ def months_with_data(session: Session, user_id: int) -> list[date]:
     """First days of the months that have transactions, newest first."""
     month = func.date_trunc("month", Transaction.date)
     rows = session.scalars(
-        select(distinct(month)).where(Transaction.user_id == user_id).order_by(month.desc())
+        select(month).where(Transaction.user_id == user_id).distinct().order_by(month.desc())
     )
     return [value.date() for value in rows]
