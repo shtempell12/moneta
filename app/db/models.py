@@ -87,7 +87,7 @@ class Import(Base):
 
 class Transaction(Base):
     __tablename__ = "transactions"
-    __table_args__ = (Index(None, "user_id", "date"),)
+    __table_args__ = (Index(None, "user_id", "date"), Index(None, "user_id", "merchant_key"))
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
@@ -96,6 +96,8 @@ class Transaction(Base):
     # Signed, as in bank statements: negative is an expense, positive is income.
     amount: Mapped[Decimal] = mapped_column(Numeric(12, 2))
     description: Mapped[str] = mapped_column(String(500))
+    # Normalized description, e.g. «пятерочка москва»: links a transaction to merchant_rules.
+    merchant_key: Mapped[str] = mapped_column(String(255), server_default="")
     bank_category: Mapped[str | None] = mapped_column(String(100))
     category_id: Mapped[int | None] = mapped_column(
         ForeignKey("categories.id", ondelete="SET NULL")
