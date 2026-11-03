@@ -79,6 +79,8 @@
     .bar-row { display: grid; grid-template-columns: minmax(120px, 200px) 1fr auto; gap: 12px; align-items: center; margin: 10px 0; }
     .bar { height: 10px; background: var(--bg); border-radius: 5px; overflow: hidden; }
     .bar span { display: block; height: 100%; background: var(--accent); border-radius: 5px; }
+    .bar span.over { background: var(--error); }
+    .over { color: var(--error); font-size: 14px; }
     .month-switch { display: flex; gap: 8px; align-items: center; margin-bottom: 20px; }
     .month-switch select { width: auto; margin: 0; }
   </style>
@@ -91,6 +93,7 @@
       {% set path = request.url.path %}
       <a href="/" class="{{ 'active' if path == '/' }}">Дашборд</a>
       <a href="/transactions" class="{{ 'active' if path.startswith('/transactions') }}">Траты</a>
+      <a href="/plan" class="{{ 'active' if path.startswith('/plan') }}">План</a>
       <a href="/import" class="{{ 'active' if path.startswith('/import') }}">Загрузить выписку</a>
       <a href="/categories" class="{{ 'active' if path.startswith('/categories') }}">Категории</a>
     </nav>

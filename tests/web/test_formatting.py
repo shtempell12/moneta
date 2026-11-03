@@ -2,7 +2,7 @@ from decimal import Decimal
 
 import pytest
 
-from app.web.templating import format_rub, plural
+from app.web.templating import format_plan_amount, format_rub, plural
 
 
 def test_rub_uses_russian_separators() -> None:
@@ -22,3 +22,8 @@ def test_rub_shows_plus_for_income_when_asked() -> None:
 )  # fmt: skip
 def test_plural(count: int, word: str) -> None:
     assert plural(count, "операция", "операции", "операций") == word
+
+
+def test_plan_amount_for_input_field() -> None:
+    assert format_plan_amount(Decimal("30000.00")) == "30 000"
+    assert format_plan_amount(Decimal("1500.50")) == "1 500,50"
