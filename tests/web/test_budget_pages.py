@@ -52,6 +52,13 @@ def category_option_id(page: str, name: str) -> str:
     return match.group(1)
 
 
+def category_form_id(page: str, name: str) -> str:
+    row = next(chunk for chunk in page.split("<tr") if f'value="{name}"' in chunk)
+    match = re.search(r"/categories/(\d+)/rename", row)
+    assert match, f"no rename form for {name}"
+    return match.group(1)
+
+
 def test_pages_require_login(client: TestClient) -> None:
     for path in ("/", "/transactions", "/import", "/categories"):
         response = client.get(path, follow_redirects=False)
@@ -131,3 +138,79 @@ def test_adding_own_category(client: TestClient) -> None:
     page = client.post("/categories", data={"name": "Развивашки", "csrf_token": token}).text
 
     assert "Развивашки" in page
+
+
+def test_adding_cash_purchase_by_hand(client: TestClient) -> None:
+    token = csrf_token(register(client))
+    form_page = client.get("/transactions/new").text
+
+    page = client.post(
+        "/transactions/new",
+        data={
+            "date": "2026-10-05",
+            "amount": "700",
+            "description": "Рынок",
+            "category_id": category_option_id(form_page, "Продукты"),
+            "spender": "жена",
+            "csrf_token": token,
+        },
+    ).text
+
+    assert "Рынок" in page
+    assert "жена" in page
+    assert "−700,00" in page
+
+
+def test_invalid_amount_shows_the_form_again(client: TestClient) -> None:
+    token = csrf_token(register(client))
+    form_page = client.get("/transactions/new").text
+
+    response = client.post(
+        "/transactions/new",
+        data={
+            "date": "2026-10-05",
+            "amount": "сто",
+            "description": "Рынок",
+            "category_id": category_option_id(form_page, "Продукты"),
+            "csrf_token": token,
+        },
+    )
+
+    assert response.status_code == 400
+    assert "числом" in response.text
+    assert 'value="Рынок"' in response.text
+
+
+def test_bank_transaction_edit_page_changes_only_the_spender(client: TestClient) -> None:
+    token = csrf_token(register(client))
+    confirm_import(client, token)
+    page = client.get("/transactions?month=2026-10").text
+    wildberries = transaction_id(page, "WILDBERRIES")
+
+    edit_page = client.get(f"/transactions/{wildberries}/edit").text
+    assert 'name="amount"' not in edit_page
+    page = client.post(
+        f"/transactions/{wildberries}/edit", data={"spender": "муж", "csrf_token": token}
+    ).text
+
+    assert "муж" in page
+    delete = client.post(f"/transactions/{wildberries}/delete", data={"csrf_token": token})
+    assert delete.status_code == 400
+
+
+def test_renaming_and_deleting_category(client: TestClient) -> None:
+    token = csrf_token(register(client))
+    page = client.get("/categories").text
+    match = re.search(
+        r'action="/categories/(\d+)/rename"[^<]*<input[^>]*>\s*<input[^>]*value="Дети"', page
+    )
+    assert match
+    kids = match.group(1)
+
+    page = client.post(
+        f"/categories/{kids}/rename", data={"name": "Развивашки", "csrf_token": token}
+    ).text
+    assert 'value="Развивашки"' in page
+
+    page = client.post(f"/categories/{kids}/delete", data={"csrf_token": token}).text
+    assert 'value="Развивашки"' not in page

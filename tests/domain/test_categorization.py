@@ -3,6 +3,7 @@ from app.domain.categorization import (
     CascadeCategorizer,
     HistoryCategorizer,
     TransactionFeatures,
+    merchant_category,
 )
 from app.domain.enums import CategorySource
 
@@ -71,3 +72,20 @@ def test_cascade_falls_back_to_bank_category_and_then_to_nothing() -> None:
 
     assert cascade.predict(features("пятерочка", "Супермаркеты")) is not None
     assert cascade.predict(features("wildberries", "Маркетплейсы")) is None
+
+
+HEALTH, BEAUTY = 1, 2
+
+
+def test_merchant_category_is_the_most_frequent_manual_choice() -> None:
+    # Pharmacy: four times «Здоровье», then once «Красота» for a face cream.
+    assert merchant_category([HEALTH, HEALTH, HEALTH, HEALTH, BEAUTY], BEAUTY) == HEALTH
+
+
+def test_merchant_category_tie_goes_to_the_latest_choice() -> None:
+    assert merchant_category([BEAUTY, HEALTH], HEALTH) == HEALTH
+    assert merchant_category([HEALTH, BEAUTY], BEAUTY) == BEAUTY
+
+
+def test_first_choice_for_a_merchant_is_taken_as_is() -> None:
+    assert merchant_category([BEAUTY], BEAUTY) == BEAUTY

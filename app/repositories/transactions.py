@@ -49,6 +49,20 @@ def get_for_user(session: Session, user_id: int, transaction_id: int) -> Transac
     )
 
 
+def manual_category_ids(session: Session, user_id: int, merchant_key: str) -> list[int]:
+    """Categories the user set by hand for this merchant, one entry per transaction."""
+    return list(
+        session.scalars(
+            select(Transaction.category_id).where(
+                Transaction.user_id == user_id,
+                Transaction.merchant_key == merchant_key,
+                Transaction.category_source == CategorySource.MANUAL,
+                Transaction.category_id.is_not(None),
+            )
+        )
+    )
+
+
 def apply_category_to_merchant(
     session: Session, user_id: int, merchant_key: str, category_id: int
 ) -> int:
@@ -68,6 +82,27 @@ def apply_category_to_merchant(
         .returning(Transaction.id)
     ).all()
     return len(changed_ids)
+
+
+def clear_category(session: Session, user_id: int, category_id: int) -> None:
+    """Make the category's transactions uncategorized, e.g. before the category is deleted."""
+    session.execute(
+        update(Transaction)
+        .where(Transaction.user_id == user_id, Transaction.category_id == category_id)
+        .values(category_id=None, category_source=None)
+    )
+
+
+def spenders(session: Session, user_id: int) -> list[str]:
+    """Labels the user has already used in «Кто потратил», to suggest them in forms."""
+    return list(
+        session.scalars(
+            select(Transaction.spender)
+            .where(Transaction.user_id == user_id, Transaction.spender.is_not(None))
+            .distinct()
+            .order_by(Transaction.spender)
+        )
+    )
 
 
 def months_with_data(session: Session, user_id: int) -> list[date]:

@@ -3,8 +3,11 @@
 {% block content %}
 {% include "_month_switch.html" %}
 <div class="card">
-  <h1>Траты: {{ month | month_title }}</h1>
-  <p class="muted">Поправьте категорию — Монета запомнит выбор для этого магазина и применит его к остальным операциям.</p>
+  <div class="row" style="align-items:center">
+    <h1>Траты: {{ month | month_title }}</h1>
+    <a href="/transactions/new" class="button" style="flex:0 0 auto">+ Добавить трату</a>
+  </div>
+  <p class="muted">Поправьте категорию — Монета запомнит, что вы чаще выбираете для этого магазина, и разложит остальные его операции так же.</p>
   <div id="transactions">{% include "_transactions_table.html" %}</div>
 </div>
 {% endblock %}

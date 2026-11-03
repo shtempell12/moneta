@@ -82,6 +82,53 @@ def test_manual_choice_is_not_overwritten_by_a_later_fix(session: Session, user_
     assert big_purchase.category_id == gifts
 
 
+def test_one_unusual_purchase_does_not_move_the_whole_merchant(
+    session: Session, user_id: int
+) -> None:
+    import_statement(
+        session,
+        user_id,
+        "october.csv",
+        statement(*(row(day, "-500", f"АПТЕКА РИГЛА {day}", "Аптеки") for day in range(1, 7))),
+    )
+    health, beauty = category_id(session, "Здоровье"), category_id(session, "Красота")
+    for day in (1, 2):
+        transactions.change_category(
+            session, user_id, transaction_id(session, f"АПТЕКА РИГЛА {day}"), health
+        )
+
+    also_changed = transactions.change_category(
+        session, user_id, transaction_id(session, "АПТЕКА РИГЛА 3"), beauty
+    )
+
+    assert also_changed == 0
+    assert merchant_rules.as_dict(session, user_id) == {"аптека ригла": health}
+    categories_by_day = session.scalars(select(Transaction.category_id).order_by(Transaction.date))
+    assert list(categories_by_day) == [health, health, beauty, health, health, health]
+
+
+def test_switching_back_and_forth_follows_the_latest_choice_on_a_tie(
+    session: Session, user_id: int
+) -> None:
+    import_statement(
+        session,
+        user_id,
+        "october.csv",
+        statement(*(row(day, "-500", f"АПТЕКА РИГЛА {day}", "Аптеки") for day in range(1, 5))),
+    )
+    health, beauty = category_id(session, "Здоровье"), category_id(session, "Красота")
+    transactions.change_category(
+        session, user_id, transaction_id(session, "АПТЕКА РИГЛА 1"), beauty
+    )
+
+    transactions.change_category(
+        session, user_id, transaction_id(session, "АПТЕКА РИГЛА 2"), health
+    )
+
+    categories_by_day = session.scalars(select(Transaction.category_id).order_by(Transaction.date))
+    assert list(categories_by_day) == [beauty, health, health, health]
+
+
 def test_correction_is_logged_for_accuracy_research(session: Session, user_id: int) -> None:
     import_statement(
         session, user_id, "october.csv", statement(row(1, "-100", "ПЯТЕРОЧКА", "Супермаркеты"))
@@ -134,3 +181,35 @@ def test_new_category_names_are_cleaned_and_unique(session: Session, user_id: in
         categories_service.add_category(session, user_id, "Бьюти услуги")
     with pytest.raises(CategoryError, match="название"):
         categories_service.add_category(session, user_id, "   ")
+
+
+def test_renamed_category_keeps_its_transactions_and_rules(session: Session, user_id: int) -> None:
+    import_statement(session, user_id, "october.csv", statement(row(1, "-900", "ЛУЧИК")))
+    kids = categories_service.add_category(session, user_id, "Кружки")
+    transactions.change_category(session, user_id, transaction_id(session, "ЛУЧИК"), kids.id)
+
+    categories_service.rename_category(session, user_id, kids.id, "Развивашки")
+
+    assert session.get_one(Category, kids.id).name == "Развивашки"
+    assert merchant_rules.as_dict(session, user_id) == {"лучик": kids.id}
+    with pytest.raises(CategoryError, match="уже есть"):
+        categories_service.rename_category(session, user_id, kids.id, "Продукты")
+    categories_service.rename_category(session, user_id, kids.id, " Развивашки ")
+
+
+def test_deleted_category_leaves_its_transactions_uncategorized(
+    session: Session, user_id: int
+) -> None:
+    import_statement(
+        session, user_id, "october.csv", statement(row(1, "-100", "ПЯТЕРОЧКА", "Супермаркеты"))
+    )
+    groceries = category_id(session, "Продукты")
+    transactions.change_category(session, user_id, transaction_id(session, "ПЯТЕРОЧКА"), groceries)
+
+    categories_service.delete_category(session, user_id, groceries)
+
+    transaction = session.scalars(select(Transaction)).one()
+    assert (transaction.category_id, transaction.category_source) == (None, None)
+    assert merchant_rules.as_dict(session, user_id) == {}
+    with pytest.raises(CategoryError, match="не найдена"):
+        categories_service.delete_category(session, user_id, groceries)

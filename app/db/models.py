@@ -107,6 +107,11 @@ class Transaction(Base):
     spender: Mapped[str | None] = mapped_column(String(50))
     created_at: Mapped[datetime] = _created_at()
 
+    @property
+    def added_by_hand(self) -> bool:
+        # Bank rows always come from an imported statement; hand-added ones have no import.
+        return self.import_id is None
+
 
 class MerchantRule(Base):
     """Remembers the user's choice: this merchant always goes to this category."""

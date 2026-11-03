@@ -4,6 +4,7 @@ All categorizers share one interface, so they can be combined in a cascade and c
 with each other in research/ on the same data.
 """
 
+from collections import Counter
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Protocol
@@ -104,3 +105,18 @@ class CascadeCategorizer:
             if prediction is not None:
                 return prediction
         return None
+
+
+def merchant_category(manual_choices: Sequence[int], latest_choice: int) -> int:
+    """The category for a merchant's other and future transactions.
+
+    It is the category the user chose by hand most often for this merchant, so one unusual
+    purchase does not move the whole merchant: a pharmacy fixed 4 times to «Здоровье» and
+    once to «Красота» stays in «Здоровье». On a tie the latest choice wins, so a fresh
+    correction is never ignored.
+    """
+    counts = Counter(manual_choices)
+    top = max(counts.values(), default=0)
+    if counts[latest_choice] >= top:
+        return latest_choice
+    return counts.most_common(1)[0][0]
