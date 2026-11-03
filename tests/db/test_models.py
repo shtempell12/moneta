@@ -6,7 +6,7 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.db.models import Category, Event, MerchantRule, Transaction, User
+from app.db.models import BudgetLine, Category, Event, MerchantRule, Transaction, User
 from app.domain.enums import CategorySource, UserRole
 
 
@@ -114,6 +114,12 @@ def test_deleting_user_removes_all_their_data(session: Session) -> None:
             ),
             MerchantRule(user_id=user.id, merchant_key="пятерочка", category_id=category.id),
             Event(user_id=user.id, type="login", payload={"ok": True}),
+            BudgetLine(
+                user_id=user.id,
+                category_id=category.id,
+                month=date(2026, 10, 1),
+                amount=Decimal("30000.00"),
+            ),
         ]
     )
     session.flush()
@@ -122,5 +128,20 @@ def test_deleting_user_removes_all_their_data(session: Session) -> None:
     session.flush()
     session.expunge_all()
 
-    for model in (Category, Transaction, MerchantRule, Event):
+    for model in (Category, Transaction, MerchantRule, Event, BudgetLine):
         assert session.scalar(select(func.count()).select_from(model)) == 0
+
+
+def test_plan_amount_must_be_positive(session: Session) -> None:
+    user = make_user(session)
+    category = Category(user_id=user.id, name="Продукты")
+    session.add(category)
+    session.flush()
+
+    session.add(
+        BudgetLine(
+            user_id=user.id, category_id=category.id, month=date(2026, 10, 1), amount=Decimal("0")
+        )
+    )
+    with pytest.raises(IntegrityError):
+        session.flush()
