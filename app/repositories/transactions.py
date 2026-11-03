@@ -84,6 +84,15 @@ def apply_category_to_merchant(
     return len(changed_ids)
 
 
+def clear_category(session: Session, user_id: int, category_id: int) -> None:
+    """Make the category's transactions uncategorized, e.g. before the category is deleted."""
+    session.execute(
+        update(Transaction)
+        .where(Transaction.user_id == user_id, Transaction.category_id == category_id)
+        .values(category_id=None, category_source=None)
+    )
+
+
 def spenders(session: Session, user_id: int) -> list[str]:
     """Labels the user has already used in «Кто потратил», to suggest them in forms."""
     return list(

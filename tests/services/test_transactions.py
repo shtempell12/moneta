@@ -181,3 +181,35 @@ def test_new_category_names_are_cleaned_and_unique(session: Session, user_id: in
         categories_service.add_category(session, user_id, "Бьюти услуги")
     with pytest.raises(CategoryError, match="название"):
         categories_service.add_category(session, user_id, "   ")
+
+
+def test_renamed_category_keeps_its_transactions_and_rules(session: Session, user_id: int) -> None:
+    import_statement(session, user_id, "october.csv", statement(row(1, "-900", "ЛУЧИК")))
+    kids = categories_service.add_category(session, user_id, "Кружки")
+    transactions.change_category(session, user_id, transaction_id(session, "ЛУЧИК"), kids.id)
+
+    categories_service.rename_category(session, user_id, kids.id, "Развивашки")
+
+    assert session.get_one(Category, kids.id).name == "Развивашки"
+    assert merchant_rules.as_dict(session, user_id) == {"лучик": kids.id}
+    with pytest.raises(CategoryError, match="уже есть"):
+        categories_service.rename_category(session, user_id, kids.id, "Продукты")
+    categories_service.rename_category(session, user_id, kids.id, " Развивашки ")
+
+
+def test_deleted_category_leaves_its_transactions_uncategorized(
+    session: Session, user_id: int
+) -> None:
+    import_statement(
+        session, user_id, "october.csv", statement(row(1, "-100", "ПЯТЕРОЧКА", "Супермаркеты"))
+    )
+    groceries = category_id(session, "Продукты")
+    transactions.change_category(session, user_id, transaction_id(session, "ПЯТЕРОЧКА"), groceries)
+
+    categories_service.delete_category(session, user_id, groceries)
+
+    transaction = session.scalars(select(Transaction)).one()
+    assert (transaction.category_id, transaction.category_source) == (None, None)
+    assert merchant_rules.as_dict(session, user_id) == {}
+    with pytest.raises(CategoryError, match="не найдена"):
+        categories_service.delete_category(session, user_id, groceries)
