@@ -82,6 +82,53 @@ def test_manual_choice_is_not_overwritten_by_a_later_fix(session: Session, user_
     assert big_purchase.category_id == gifts
 
 
+def test_one_unusual_purchase_does_not_move_the_whole_merchant(
+    session: Session, user_id: int
+) -> None:
+    import_statement(
+        session,
+        user_id,
+        "october.csv",
+        statement(*(row(day, "-500", f"АПТЕКА РИГЛА {day}", "Аптеки") for day in range(1, 7))),
+    )
+    health, beauty = category_id(session, "Здоровье"), category_id(session, "Красота")
+    for day in (1, 2):
+        transactions.change_category(
+            session, user_id, transaction_id(session, f"АПТЕКА РИГЛА {day}"), health
+        )
+
+    also_changed = transactions.change_category(
+        session, user_id, transaction_id(session, "АПТЕКА РИГЛА 3"), beauty
+    )
+
+    assert also_changed == 0
+    assert merchant_rules.as_dict(session, user_id) == {"аптека ригла": health}
+    categories_by_day = session.scalars(select(Transaction.category_id).order_by(Transaction.date))
+    assert list(categories_by_day) == [health, health, beauty, health, health, health]
+
+
+def test_switching_back_and_forth_follows_the_latest_choice_on_a_tie(
+    session: Session, user_id: int
+) -> None:
+    import_statement(
+        session,
+        user_id,
+        "october.csv",
+        statement(*(row(day, "-500", f"АПТЕКА РИГЛА {day}", "Аптеки") for day in range(1, 5))),
+    )
+    health, beauty = category_id(session, "Здоровье"), category_id(session, "Красота")
+    transactions.change_category(
+        session, user_id, transaction_id(session, "АПТЕКА РИГЛА 1"), beauty
+    )
+
+    transactions.change_category(
+        session, user_id, transaction_id(session, "АПТЕКА РИГЛА 2"), health
+    )
+
+    categories_by_day = session.scalars(select(Transaction.category_id).order_by(Transaction.date))
+    assert list(categories_by_day) == [beauty, health, health, health]
+
+
 def test_correction_is_logged_for_accuracy_research(session: Session, user_id: int) -> None:
     import_statement(
         session, user_id, "october.csv", statement(row(1, "-100", "ПЯТЕРОЧКА", "Супермаркеты"))

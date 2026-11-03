@@ -3,6 +3,7 @@ from datetime import date
 from sqlalchemy.orm import Session
 
 from app.db.models import Transaction
+from app.domain.categorization import merchant_category
 from app.domain.enums import CategorySource
 from app.domain.months import next_month
 from app.domain.summary import MonthSummary, SummaryEntry, summarize_month
@@ -28,9 +29,10 @@ def month_summary(session: Session, user_id: int, month: date) -> MonthSummary:
 
 
 def change_category(session: Session, user_id: int, transaction_id: int, category_id: int) -> int:
-    """Set the category by hand and remember it for this merchant.
+    """Set the category by hand and update what is remembered for this merchant.
 
-    The merchant's other transactions that were not fixed by hand get the same category.
+    The merchant keeps the category the user chose most often (see merchant_category),
+    and its transactions that were not fixed by hand follow it.
     Returns how many other transactions changed along with this one.
     """
     transaction = transactions.get_for_user(session, user_id, transaction_id)
@@ -43,10 +45,15 @@ def change_category(session: Session, user_id: int, transaction_id: int, categor
     transaction.category_source = CategorySource.MANUAL
     also_changed = 0
     if transaction.merchant_key:
-        merchant_rules.upsert(session, user_id, transaction.merchant_key, category.id)
+        session.flush()
+        remembered_id = merchant_category(
+            transactions.manual_category_ids(session, user_id, transaction.merchant_key),
+            latest_choice=category.id,
+        )
+        merchant_rules.upsert(session, user_id, transaction.merchant_key, remembered_id)
         session.flush()
         also_changed = transactions.apply_category_to_merchant(
-            session, user_id, transaction.merchant_key, category.id
+            session, user_id, transaction.merchant_key, remembered_id
         )
 
     # The correction log is the raw data for measuring categorization accuracy.

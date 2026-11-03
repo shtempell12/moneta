@@ -49,6 +49,20 @@ def get_for_user(session: Session, user_id: int, transaction_id: int) -> Transac
     )
 
 
+def manual_category_ids(session: Session, user_id: int, merchant_key: str) -> list[int]:
+    """Categories the user set by hand for this merchant, one entry per transaction."""
+    return list(
+        session.scalars(
+            select(Transaction.category_id).where(
+                Transaction.user_id == user_id,
+                Transaction.merchant_key == merchant_key,
+                Transaction.category_source == CategorySource.MANUAL,
+                Transaction.category_id.is_not(None),
+            )
+        )
+    )
+
+
 def apply_category_to_merchant(
     session: Session, user_id: int, merchant_key: str, category_id: int
 ) -> int:
