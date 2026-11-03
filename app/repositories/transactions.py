@@ -84,6 +84,18 @@ def apply_category_to_merchant(
     return len(changed_ids)
 
 
+def spenders(session: Session, user_id: int) -> list[str]:
+    """Labels the user has already used in «Кто потратил», to suggest them in forms."""
+    return list(
+        session.scalars(
+            select(Transaction.spender)
+            .where(Transaction.user_id == user_id, Transaction.spender.is_not(None))
+            .distinct()
+            .order_by(Transaction.spender)
+        )
+    )
+
+
 def months_with_data(session: Session, user_id: int) -> list[date]:
     """First days of the months that have transactions, newest first."""
     month = func.date_trunc("month", Transaction.date)

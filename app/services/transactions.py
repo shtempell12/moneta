@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.db.models import Transaction
 from app.domain.categorization import merchant_category
+from app.domain.entries import EntryForm, clean_spender, make_entry
 from app.domain.enums import CategorySource
 from app.domain.months import next_month
 from app.domain.summary import MonthSummary, SummaryEntry, summarize_month
@@ -12,6 +13,13 @@ from app.repositories import categories, events, merchant_rules, transactions
 
 class NotFoundError(Exception):
     """The transaction or category does not exist or belongs to another user."""
+
+
+class NotEditableError(Exception):
+    """Only hand-added transactions can be edited or deleted.
+
+    A bank transaction deleted here would come back with the next import of the statement.
+    """
 
 
 def month_transactions(
@@ -71,3 +79,71 @@ def change_category(session: Session, user_id: int, transaction_id: int, categor
     )
     session.commit()
     return also_changed
+
+
+def add_transaction(session: Session, user_id: int, form: EntryForm) -> Transaction:
+    """Add a transaction by hand, e.g. cash at a market."""
+    category = categories.get_for_user(session, user_id, form.category_id)
+    if category is None:
+        raise NotFoundError
+    entry = make_entry(form, category.kind, category.name)
+    transaction = Transaction(
+        user_id=user_id,
+        date=entry.date,
+        amount=entry.amount,
+        description=entry.description,
+        spender=entry.spender,
+        category_id=category.id,
+        category_source=CategorySource.MANUAL,
+        # A typed note like «рынок» is not a bank merchant name,
+        # so it must not create rules for statement rows.
+        merchant_key="",
+    )
+    session.add(transaction)
+    session.flush()
+    events.add(session, "transaction_added", user_id, {"transaction_id": transaction.id})
+    session.commit()
+    return transaction
+
+
+def edit_transaction(
+    session: Session, user_id: int, transaction_id: int, form: EntryForm
+) -> Transaction:
+    transaction = _hand_added(session, user_id, transaction_id)
+    category = categories.get_for_user(session, user_id, form.category_id)
+    if category is None:
+        raise NotFoundError
+    entry = make_entry(form, category.kind, category.name)
+    transaction.date = entry.date
+    transaction.amount = entry.amount
+    transaction.description = entry.description
+    transaction.spender = entry.spender
+    transaction.category_id = category.id
+    events.add(session, "transaction_edited", user_id, {"transaction_id": transaction.id})
+    session.commit()
+    return transaction
+
+
+def set_spender(session: Session, user_id: int, transaction_id: int, spender: str) -> None:
+    """Set «Кто потратил». Bank transactions allow it, as it is not in the statement."""
+    transaction = transactions.get_for_user(session, user_id, transaction_id)
+    if transaction is None:
+        raise NotFoundError
+    transaction.spender = clean_spender(spender)
+    session.commit()
+
+
+def delete_transaction(session: Session, user_id: int, transaction_id: int) -> None:
+    transaction = _hand_added(session, user_id, transaction_id)
+    session.delete(transaction)
+    events.add(session, "transaction_deleted", user_id, {"transaction_id": transaction_id})
+    session.commit()
+
+
+def _hand_added(session: Session, user_id: int, transaction_id: int) -> Transaction:
+    transaction = transactions.get_for_user(session, user_id, transaction_id)
+    if transaction is None:
+        raise NotFoundError
+    if not transaction.added_by_hand:
+        raise NotEditableError
+    return transaction
