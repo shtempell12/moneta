@@ -4,11 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Монета{% endblock %}</title>
+  <script src="https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js"></script>
   <style>
     :root {
       --bg: #f6f7fb; --card: #ffffff; --text: #1d2433; --muted: #6b7385;
-      --accent: #2f5bea; --accent-hover: #2449c4; --error-bg: #fdecec; --error: #b42318;
-      --border: #e3e6ee;
+      --accent: #2f5bea; --accent-hover: #2449c4; --accent-soft: #e8eefe;
+      --error-bg: #fdecec; --error: #b42318; --ok-bg: #e7f6ec; --ok: #1a7f37;
+      --border: #e3e6ee; --expense: #1d2433; --income: #1a7f37;
     }
     * { box-sizing: border-box; }
     body {
@@ -16,44 +18,86 @@
       font: 16px/1.5 -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
     }
     header {
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 16px 24px; background: var(--card); border-bottom: 1px solid var(--border);
+      display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center;
+      padding: 14px 24px; background: var(--card); border-bottom: 1px solid var(--border);
     }
     .logo { font-weight: 700; font-size: 20px; color: var(--accent); text-decoration: none; }
-    main { max-width: 720px; margin: 32px auto; padding: 0 16px; }
+    nav { display: flex; flex-wrap: wrap; gap: 4px 16px; flex: 1; }
+    nav a { color: var(--muted); text-decoration: none; padding: 4px 0; }
+    nav a.active, nav a:hover { color: var(--text); }
+    nav a.active { border-bottom: 2px solid var(--accent); }
+    .user { display: flex; gap: 8px; align-items: center; }
+    main { max-width: 960px; margin: 28px auto; padding: 0 16px; }
     .card {
-      background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 24px;
+      background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+      padding: 24px; margin-bottom: 20px;
     }
     .narrow { max-width: 400px; margin: 0 auto; }
-    h1 { margin-top: 0; font-size: 24px; }
+    h1 { margin: 0 0 16px; font-size: 24px; }
+    h2 { margin: 0 0 12px; font-size: 18px; }
     label { display: block; margin-bottom: 16px; font-size: 14px; color: var(--muted); }
-    input[type=email], input[type=password] {
+    input[type=email], input[type=password], input[type=text], select {
       display: block; width: 100%; margin-top: 4px; padding: 10px 12px; font-size: 16px;
-      border: 1px solid var(--border); border-radius: 8px;
+      border: 1px solid var(--border); border-radius: 8px; background: #fff; color: var(--text);
     }
     .checkbox { display: flex; gap: 8px; align-items: flex-start; color: var(--text); }
     .checkbox input { margin-top: 4px; }
-    button {
-      padding: 10px 18px; font-size: 16px; border: 0; border-radius: 8px; cursor: pointer;
-      background: var(--accent); color: #fff;
+    button, .button {
+      display: inline-block; padding: 10px 18px; font-size: 16px; border: 0; border-radius: 8px;
+      cursor: pointer; background: var(--accent); color: #fff; text-decoration: none;
     }
-    button:hover { background: var(--accent-hover); }
-    button.link { background: none; color: var(--muted); padding: 0; }
+    button:hover, .button:hover { background: var(--accent-hover); }
+    button.link { background: none; color: var(--muted); padding: 0; font-size: 15px; }
     button.link:hover { color: var(--text); }
-    .error {
-      background: var(--error-bg); color: var(--error); padding: 10px 12px;
-      border-radius: 8px; margin-bottom: 16px;
-    }
+    .error, .notice { padding: 10px 12px; border-radius: 8px; margin-bottom: 16px; }
+    .error { background: var(--error-bg); color: var(--error); }
+    .notice { background: var(--ok-bg); color: var(--ok); }
     .muted { color: var(--muted); font-size: 14px; }
     .tags { display: flex; flex-wrap: wrap; gap: 8px; padding: 0; list-style: none; }
     .tags li { background: var(--bg); border: 1px solid var(--border); border-radius: 16px; padding: 4px 12px; }
     a { color: var(--accent); }
+    .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
+    .row > * { flex: 1; min-width: 180px; }
+    .row > button { flex: 0 0 auto; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 15px; }
+    th { text-align: left; color: var(--muted); font-weight: 500; font-size: 13px; }
+    th, td { padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    td.amount { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+    td.amount.income { color: var(--income); }
+    td select { margin: 0; padding: 6px 8px; font-size: 14px; min-width: 170px; }
+    tr.flash td { background: var(--accent-soft); transition: background 1s; }
+    .badge { font-size: 12px; padding: 2px 8px; border-radius: 10px; white-space: nowrap; }
+    .badge.bank { background: #f1f2f6; color: var(--muted); }
+    .badge.history { background: var(--accent-soft); color: var(--accent); }
+    .badge.manual { background: #fff4e0; color: #9a5b00; }
+    .badge.none { background: var(--error-bg); color: var(--error); }
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+    .stat .value { font-size: 26px; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .bar-row { display: grid; grid-template-columns: minmax(120px, 200px) 1fr auto; gap: 12px; align-items: center; margin: 10px 0; }
+    .bar { height: 10px; background: var(--bg); border-radius: 5px; overflow: hidden; }
+    .bar span { display: block; height: 100%; background: var(--accent); border-radius: 5px; }
+    .month-switch { display: flex; gap: 8px; align-items: center; margin-bottom: 20px; }
+    .month-switch select { width: auto; margin: 0; }
   </style>
 </head>
 <body>
   <header>
     <a class="logo" href="/">Монета</a>
-    {% block header_right %}{% endblock %}
+    {% if current %}
+    <nav>
+      {% set path = request.url.path %}
+      <a href="/" class="{{ 'active' if path == '/' }}">Дашборд</a>
+      <a href="/transactions" class="{{ 'active' if path.startswith('/transactions') }}">Траты</a>
+      <a href="/import" class="{{ 'active' if path.startswith('/import') }}">Загрузить выписку</a>
+      <a href="/categories" class="{{ 'active' if path.startswith('/categories') }}">Категории</a>
+    </nav>
+    <form method="post" action="/logout" class="user">
+      <span class="muted">{{ current.user.email }}</span>
+      <input type="hidden" name="csrf_token" value="{{ current.csrf_token }}">
+      <button type="submit" class="link">Выйти</button>
+    </form>
+    {% endif %}
   </header>
   <main>{% block content %}{% endblock %}</main>
 </body>

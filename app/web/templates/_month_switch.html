@@ -1,0 +1,8 @@
+<form class="month-switch" method="get">
+  <select name="month" onchange="this.form.submit()" aria-label="Месяц">
+    {% for item in months %}
+    <option value="{{ item | month_param }}" {{ 'selected' if item == month }}>{{ item | month_title }}</option>
+    {% endfor %}
+  </select>
+  <noscript><button type="submit">Показать</button></noscript>
+</form>

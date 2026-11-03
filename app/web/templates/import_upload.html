@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Загрузить выписку — Монета{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>Загрузить выписку</h1>
+  <p>Скачайте выписку в приложении или на сайте банка в формате <b>CSV или Excel</b> и загрузите её сюда.
+     Подключать банк не нужно.</p>
+  {% if error %}<div class="error">{{ error }}</div>{% endif %}
+  <form method="post" action="/import/preview" enctype="multipart/form-data" class="row">
+    <input type="hidden" name="csrf_token" value="{{ current.csrf_token }}">
+    <label>Файл выписки<input type="file" name="file" accept=".csv,.xlsx,.txt" required></label>
+    <button type="submit">Дальше</button>
+  </form>
+  <p class="muted">Файл используется только для загрузки операций и не хранится на сервере.</p>
+</div>
+{% endblock %}

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Дашборд — Монета{% endblock %}
+{% block content %}
+{% include "_month_switch.html" %}
+{% if summary.expenses_count == 0 %}
+<div class="card">
+  <h1>{{ month | month_title }}</h1>
+  <p>За этот месяц трат пока нет.</p>
+  <a class="button" href="/import">Загрузить выписку</a>
+</div>
+{% else %}
+<div class="stats">
+  <div class="card stat">
+    <div class="muted">Потрачено</div>
+    <div class="value">{{ summary.spent | rub }}</div>
+  </div>
+  <div class="card stat">
+    <div class="muted">Поступления</div>
+    <div class="value">{{ summary.income | rub }}</div>
+  </div>
+  <div class="card stat">
+    <div class="muted">Разложено автоматически</div>
+    <div class="value">{{ summary.auto_percent }}%</div>
+    <div class="muted">
+      вручную — {{ summary.manual_percent }}%{% if summary.uncategorized_count %},
+      <a href="/transactions?month={{ month | month_param }}">без категории — {{ summary.uncategorized_count }}</a>{% endif %}
+    </div>
+  </div>
+</div>
+<div class="card">
+  <h2>Куда ушли деньги</h2>
+  {% for item in summary.by_category %}
+  <div class="bar-row">
+    <div>{{ item.name }}</div>
+    <div class="bar"><span style="width: {{ item.percent }}%"></span></div>
+    <div class="muted">{{ item.spent | rub }} · {{ item.percent }}%</div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

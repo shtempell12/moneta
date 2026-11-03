@@ -1,0 +1,43 @@
+{% if also_changed %}
+<div class="notice">Запомнили. Ещё {{ also_changed }} {{ also_changed | plural('операция', 'операции', 'операций') }} этого магазина теперь в той же категории.</div>
+{% elif changed_id %}
+<div class="notice">Запомнили категорию для этого магазина.</div>
+{% endif %}
+{% if rows %}
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Дата</th><th>Описание</th><th>Категория банка</th><th>Категория</th><th></th><th style="text-align:right">Сумма</th></tr></thead>
+  <tbody>
+  {% for item, category_name in rows %}
+  <tr class="{{ 'flash' if item.id == changed_id }}">
+    <td>{{ item.date.strftime("%d.%m.%Y") }}</td>
+    <td>{{ item.description }}</td>
+    <td class="muted">{{ item.bank_category or "—" }}</td>
+    <td>
+      <select name="category_id"
+              hx-post="/transactions/{{ item.id }}/category"
+              hx-target="#transactions"
+              hx-vals='{"csrf_token": "{{ current.csrf_token }}", "month": "{{ month | month_param }}"}'
+              aria-label="Категория">
+        {% if not item.category_id %}<option value="" selected disabled>Выберите…</option>{% endif %}
+        {% for category in categories %}
+        <option value="{{ category.id }}" {{ 'selected' if category.id == item.category_id }}>{{ category.name }}</option>
+        {% endfor %}
+      </select>
+    </td>
+    <td>
+      {% if item.category_source %}
+      <span class="badge {{ item.category_source.value }}">{{ source_labels[item.category_source] }}</span>
+      {% else %}
+      <span class="badge none">нет</span>
+      {% endif %}
+    </td>
+    <td class="amount {{ 'income' if item.amount > 0 }}">{{ item.amount | rub(signed=True) }}</td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<p>За этот месяц операций нет. <a href="/import">Загрузить выписку</a></p>
+{% endif %}

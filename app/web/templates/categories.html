@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Категории — Монета{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>Ваши категории</h1>
+  <p class="muted">Траты раскладываются по этим категориям. Добавьте свои — например, «Развивашки» или «Бьюти».</p>
+  <ul class="tags">
+    {% for category in categories %}<li>{{ category.name }}</li>{% endfor %}
+  </ul>
+</div>
+<div class="card">
+  <h2>Новая категория</h2>
+  {% if error %}<div class="error">{{ error }}</div>{% endif %}
+  <form method="post" action="/categories" class="row">
+    <input type="hidden" name="csrf_token" value="{{ current.csrf_token }}">
+    <label>Название<input type="text" name="name" required maxlength="100"></label>
+    <button type="submit">Добавить</button>
+  </form>
+</div>
+{% endblock %}

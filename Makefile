@@ -1,4 +1,4 @@
-.PHONY: up down logs migrate test lint format typecheck check backup restore
+.PHONY: up down logs migrate demo-data test lint format typecheck check backup restore
 
 up:
 	docker compose up -d --build
@@ -13,6 +13,10 @@ logs:
 migrate:
 	docker compose exec app alembic upgrade head
 
+# Synthetic statement for demos, saved to data/ (not committed).
+demo-data:
+	uv run python scripts/make_demo_statement.py
+
 # Needs the database container running (make up).
 test:
 	uv run pytest
@@ -26,7 +30,7 @@ format:
 	uv run ruff check --fix .
 
 typecheck:
-	uv run mypy app tests
+	uv run mypy app tests scripts
 
 check: lint typecheck test
 
