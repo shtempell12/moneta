@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}План — Монета{% endblock %}
+{% block content %}
+{% include "_month_switch.html" %}
+<div class="card">
+  <h1>План на {{ month | month_title | lower }}</h1>
+  <p class="muted">Сколько вы хотите потратить в каждой категории. Пустое поле — без плана.</p>
+  {% if error %}<div class="error">{{ error }}</div>{% endif %}
+  {% if can_copy %}
+  <form method="post" action="/plan/copy" style="margin-bottom:16px">
+    <input type="hidden" name="csrf_token" value="{{ current.csrf_token }}">
+    <input type="hidden" name="month" value="{{ month | month_param }}">
+    <button type="submit">Взять план прошлого месяца</button>
+  </form>
+  {% endif %}
+  <form method="post" action="/plan">
+    <input type="hidden" name="csrf_token" value="{{ current.csrf_token }}">
+    <input type="hidden" name="month" value="{{ month | month_param }}">
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>Категория</th><th>План, ₽</th><th style="text-align:right">Потрачено</th></tr></thead>
+      <tbody>
+      {% for category in categories %}
+      <tr>
+        <td>{{ category.name }}</td>
+        <td><input type="text" name="plan_{{ category.id }}" inputmode="decimal" placeholder="—"
+                   value="{{ planned[category.id] | plan_amount if category.id in planned }}"
+                   aria-label="План: {{ category.name }}" style="margin:0;max-width:160px"></td>
+        <td class="amount">{{ spent.get(category.name, 0) | rub }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    <button type="submit" style="margin-top:16px">Сохранить план</button>
+  </form>
+</div>
+{% endblock %}

@@ -27,8 +27,38 @@
     </div>
   </div>
 </div>
+{% if plan.has_plan %}
 <div class="card">
-  <h2>Куда ушли деньги</h2>
+  <div class="row" style="align-items:center">
+    <h2>План и факт</h2>
+    <a href="/plan?month={{ month | month_param }}" style="flex:0 0 auto">Изменить план</a>
+  </div>
+  <p class="{{ 'over' if plan.left < 0 else 'muted' }}">
+    Запланировано {{ plan.planned | rub }}, потрачено {{ plan.spent | rub }} —
+    {% if plan.left >= 0 %}осталось {{ plan.left | rub }}{% else %}перерасход {{ (-plan.left) | rub }}{% endif %}
+  </p>
+  {% for item in plan.rows %}
+  <div class="bar-row">
+    <div>{{ item.name }}</div>
+    {% if item.planned is none %}
+    <div class="muted">без плана</div>
+    <div class="muted">{{ item.spent | rub }}</div>
+    {% else %}
+    <div class="bar"><span class="{{ 'over' if item.overspent }}" style="width: {{ [item.used_percent, 100] | min }}%"></span></div>
+    <div class="{{ 'over' if item.overspent else 'muted' }}">
+      {{ item.spent | rub }} из {{ item.planned | rub }}
+      {% if item.overspent %}· перерасход {{ item.overspent | rub }}{% else %}· осталось {{ item.left | rub }}{% endif %}
+    </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card">
+  <div class="row" style="align-items:center">
+    <h2>Куда ушли деньги</h2>
+    <a href="/plan?month={{ month | month_param }}" style="flex:0 0 auto">Составить план на месяц</a>
+  </div>
   {% for item in summary.by_category %}
   <div class="bar-row">
     <div>{{ item.name }}</div>
@@ -37,5 +67,6 @@
   </div>
   {% endfor %}
 </div>
+{% endif %}
 {% endif %}
 {% endblock %}

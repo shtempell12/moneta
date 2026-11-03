@@ -3,7 +3,15 @@ from sqlalchemy import Engine, inspect
 
 from tests.conftest import alembic_config
 
-EXPECTED_TABLES = {"users", "categories", "imports", "transactions", "merchant_rules", "events"}
+EXPECTED_TABLES = {
+    "users",
+    "categories",
+    "imports",
+    "transactions",
+    "merchant_rules",
+    "events",
+    "budget_lines",
+}
 
 
 def test_migrations_downgrade_and_upgrade_again(engine: Engine, db_url: str) -> None:

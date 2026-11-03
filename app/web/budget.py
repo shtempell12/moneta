@@ -18,7 +18,7 @@ from app.domain.statement import (
 from app.repositories import categories
 from app.repositories import transactions as transactions_repo
 from app.services import categories as categories_service
-from app.services import imports, transactions
+from app.services import imports, plan, transactions
 from app.services.categories import CategoryError
 from app.services.transactions import NotFoundError
 from app.web.session import DbSession, RequiredUser, check_csrf
@@ -42,7 +42,7 @@ def _current_month() -> date:
     return today().replace(day=1)
 
 
-def _selected_month(db: DbSession, user_id: int, value: str | None) -> tuple[date, list[date]]:
+def selected_month(db: DbSession, user_id: int, value: str | None) -> tuple[date, list[date]]:
     """The month from the URL, or the latest month with data, plus all months for the switcher."""
     months = transactions_repo.months_with_data(db, user_id)
     default = months[0] if months else _current_month()
@@ -56,7 +56,7 @@ def _selected_month(db: DbSession, user_id: int, value: str | None) -> tuple[dat
 def dashboard(
     request: Request, db: DbSession, current: RequiredUser, month: str | None = None
 ) -> Response:
-    selected, months = _selected_month(db, current.user.id, month)
+    selected, months = selected_month(db, current.user.id, month)
     return templates.TemplateResponse(
         request,
         "dashboard.html",
@@ -65,6 +65,7 @@ def dashboard(
             "month": selected,
             "months": months,
             "summary": transactions.month_summary(db, current.user.id, selected),
+            "plan": plan.month_plan_fact(db, current.user.id, selected),
         },
     )
 
@@ -73,7 +74,7 @@ def dashboard(
 def transactions_page(
     request: Request, db: DbSession, current: RequiredUser, month: str | None = None
 ) -> Response:
-    selected, months = _selected_month(db, current.user.id, month)
+    selected, months = selected_month(db, current.user.id, month)
     return templates.TemplateResponse(
         request,
         "transactions.html",

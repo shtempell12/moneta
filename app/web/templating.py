@@ -23,6 +23,13 @@ def format_rub(amount: Decimal, signed: bool = False) -> str:
     return f"{sign}{groups},{kopecks} ₽"
 
 
+def format_plan_amount(amount: Decimal) -> str:
+    """Decimal("30000.00") → «30 000» for an input field; kopecks only when there are any."""
+    whole, _, kopecks = f"{amount:.2f}".partition(".")
+    groups = f"{int(whole):,}".replace(",", " ")
+    return groups if kopecks == "00" else f"{groups},{kopecks}"
+
+
 def plural(count: int, one: str, few: str, many: str) -> str:
     """Russian plural form: 1 операция, 2 операции, 5 операций, 21 операция, 11 операций."""
     if count % 10 == 1 and count % 100 != 11:
@@ -34,6 +41,7 @@ def plural(count: int, one: str, few: str, many: str) -> str:
 
 templates.env.filters["rub"] = format_rub
 templates.env.filters["plural"] = plural
+templates.env.filters["plan_amount"] = format_plan_amount
 templates.env.filters["month_title"] = month_title
 templates.env.filters["month_param"] = month_param
 templates.env.globals["source_labels"] = SOURCE_LABELS

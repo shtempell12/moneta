@@ -60,7 +60,7 @@ def category_form_id(page: str, name: str) -> str:
 
 
 def test_pages_require_login(client: TestClient) -> None:
-    for path in ("/", "/transactions", "/import", "/categories"):
+    for path in ("/", "/transactions", "/import", "/categories", "/plan", "/transactions/new"):
         response = client.get(path, follow_redirects=False)
         assert response.headers["location"] == "/login", path
 
@@ -214,3 +214,42 @@ def test_renaming_and_deleting_category(client: TestClient) -> None:
 
     page = client.post(f"/categories/{kids}/delete", data={"csrf_token": token}).text
     assert 'value="Развивашки"' not in page
+
+
+def plan_field(page: str, category: str) -> str:
+    match = re.search(rf'name="(plan_\d+)"[^>]*aria-label="План: {category}"', page)
+    assert match, f"no plan field for {category}"
+    return match.group(1)
+
+
+def test_plan_is_saved_and_shown_on_dashboard(client: TestClient) -> None:
+    token = csrf_token(register(client))
+    confirm_import(client, token)
+    plan_page = client.get("/plan?month=2026-10").text
+
+    dashboard = client.post(
+        "/plan",
+        data={
+            "csrf_token": token,
+            "month": "2026-10",
+            plan_field(plan_page, "Продукты"): "2 000",
+        },
+    ).text
+
+    assert "План и факт" in dashboard
+    # Two «Пятёрочка» purchases of 1 500 against a plan of 2 000.
+    assert "перерасход 1" in dashboard
+    assert 'value="2 000"' in client.get("/plan?month=2026-10").text
+
+
+def test_invalid_plan_shows_error(client: TestClient) -> None:
+    token = csrf_token(register(client))
+    plan_page = client.get("/plan?month=2026-10").text
+
+    response = client.post(
+        "/plan",
+        data={"csrf_token": token, "month": "2026-10", plan_field(plan_page, "Продукты"): "много"},
+    )
+
+    assert response.status_code == 400
+    assert "не сумма" in response.text
