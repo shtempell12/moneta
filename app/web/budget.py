@@ -34,8 +34,12 @@ MAX_FORM_FIELD_BYTES = 8 * 1024 * 1024
 MOSCOW = ZoneInfo("Europe/Moscow")
 
 
+def today() -> date:
+    return datetime.now(UTC).astimezone(MOSCOW).date()
+
+
 def _current_month() -> date:
-    return datetime.now(UTC).astimezone(MOSCOW).date().replace(day=1)
+    return today().replace(day=1)
 
 
 def _selected_month(db: DbSession, user_id: int, value: str | None) -> tuple[date, list[date]]:
@@ -132,6 +136,39 @@ def add_category(
     check_csrf(current, csrf_token)
     try:
         categories_service.add_category(db, current.user.id, name)
+    except CategoryError as error:
+        return _categories_response(request, db, current, error=str(error), status_code=400)
+    return RedirectResponse("/categories", status_code=303)
+
+
+@router.post("/categories/{category_id}/rename")
+def rename_category(
+    request: Request,
+    db: DbSession,
+    current: RequiredUser,
+    category_id: int,
+    name: Annotated[str, Form()],
+    csrf_token: Annotated[str, Form()],
+) -> Response:
+    check_csrf(current, csrf_token)
+    try:
+        categories_service.rename_category(db, current.user.id, category_id, name)
+    except CategoryError as error:
+        return _categories_response(request, db, current, error=str(error), status_code=400)
+    return RedirectResponse("/categories", status_code=303)
+
+
+@router.post("/categories/{category_id}/delete")
+def delete_category(
+    request: Request,
+    db: DbSession,
+    current: RequiredUser,
+    category_id: int,
+    csrf_token: Annotated[str, Form()],
+) -> Response:
+    check_csrf(current, csrf_token)
+    try:
+        categories_service.delete_category(db, current.user.id, category_id)
     except CategoryError as error:
         return _categories_response(request, db, current, error=str(error), status_code=400)
     return RedirectResponse("/categories", status_code=303)

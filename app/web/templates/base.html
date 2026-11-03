@@ -36,7 +36,7 @@
     h1 { margin: 0 0 16px; font-size: 24px; }
     h2 { margin: 0 0 12px; font-size: 18px; }
     label { display: block; margin-bottom: 16px; font-size: 14px; color: var(--muted); }
-    input[type=email], input[type=password], input[type=text], select {
+    input[type=email], input[type=password], input[type=text], input[type=date], select {
       display: block; width: 100%; margin-top: 4px; padding: 10px 12px; font-size: 16px;
       border: 1px solid var(--border); border-radius: 8px; background: #fff; color: var(--text);
     }
@@ -49,6 +49,8 @@
     button:hover, .button:hover { background: var(--accent-hover); }
     button.link { background: none; color: var(--muted); padding: 0; font-size: 15px; }
     button.link:hover { color: var(--text); }
+    button.link.danger { color: var(--error); }
+    .inline { display: inline; }
     .error, .notice { padding: 10px 12px; border-radius: 8px; margin-bottom: 16px; }
     .error { background: var(--error-bg); color: var(--error); }
     .notice { background: var(--ok-bg); color: var(--ok); }

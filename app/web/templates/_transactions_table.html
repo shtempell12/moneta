@@ -6,12 +6,12 @@
 {% if rows %}
 <div class="table-wrap">
 <table>
-  <thead><tr><th>Дата</th><th>Описание</th><th>Категория банка</th><th>Категория</th><th></th><th style="text-align:right">Сумма</th></tr></thead>
+  <thead><tr><th>Дата</th><th>Описание</th><th>Категория банка</th><th>Категория</th><th></th><th style="text-align:right">Сумма</th><th></th></tr></thead>
   <tbody>
   {% for item, category_name in rows %}
   <tr class="{{ 'flash' if item.id == changed_id }}">
     <td>{{ item.date.strftime("%d.%m.%Y") }}</td>
-    <td>{{ item.description }}</td>
+    <td>{{ item.description }}{% if item.spender %}<br><span class="muted">{{ item.spender }}</span>{% endif %}</td>
     <td class="muted">{{ item.bank_category or "—" }}</td>
     <td>
       <select name="category_id"
@@ -33,11 +33,12 @@
       {% endif %}
     </td>
     <td class="amount {{ 'income' if item.amount > 0 }}">{{ item.amount | rub(signed=True) }}</td>
+    <td><a href="/transactions/{{ item.id }}/edit" class="muted">Изменить</a></td>
   </tr>
   {% endfor %}
   </tbody>
 </table>
 </div>
 {% else %}
-<p>За этот месяц операций нет. <a href="/import">Загрузить выписку</a></p>
+<p>За этот месяц операций нет. <a href="/import">Загрузить выписку</a> или <a href="/transactions/new">добавить трату вручную</a></p>
 {% endif %}

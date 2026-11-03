@@ -3,14 +3,36 @@
 {% block content %}
 <div class="card">
   <h1>Ваши категории</h1>
-  <p class="muted">Траты раскладываются по этим категориям. Добавьте свои — например, «Развивашки» или «Бьюти».</p>
-  <ul class="tags">
-    {% for category in categories %}<li>{{ category.name }}</li>{% endfor %}
-  </ul>
+  <p class="muted">Траты раскладываются по этим категориям. Переименуйте их под себя или добавьте свои — например, «Развивашки» или «Бьюти».</p>
+  {% if error %}<div class="error">{{ error }}</div>{% endif %}
+  <div class="table-wrap">
+  <table>
+    <tbody>
+    {% for category in categories %}
+    <tr>
+      <td>
+        <form method="post" action="/categories/{{ category.id }}/rename" class="row">
+          <input type="hidden" name="csrf_token" value="{{ current.csrf_token }}">
+          <input type="text" name="name" value="{{ category.name }}" required maxlength="100" aria-label="Название категории">
+          <button type="submit" class="link">Сохранить</button>
+        </form>
+      </td>
+      <td class="muted">{{ "доход" if category.kind.value == "income" else "расход" }}</td>
+      <td>
+        <form method="post" action="/categories/{{ category.id }}/delete" class="inline"
+              onsubmit='return confirm({{ ("Удалить категорию «" ~ category.name ~ "»? Её траты станут «без категории».") | tojson }})'>
+          <input type="hidden" name="csrf_token" value="{{ current.csrf_token }}">
+          <button type="submit" class="link danger">Удалить</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
 </div>
 <div class="card">
   <h2>Новая категория</h2>
-  {% if error %}<div class="error">{{ error }}</div>{% endif %}
   <form method="post" action="/categories" class="row">
     <input type="hidden" name="csrf_token" value="{{ current.csrf_token }}">
     <label>Название<input type="text" name="name" required maxlength="100"></label>
