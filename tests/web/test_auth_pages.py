@@ -82,3 +82,23 @@ def test_logged_in_user_is_sent_from_login_page_to_home(client: TestClient) -> N
     response = client.get("/login", follow_redirects=False)
 
     assert response.headers["location"] == "/"
+
+
+def test_account_deletion_logs_out_and_frees_the_email(client: TestClient) -> None:
+    token = csrf_token(register(client))
+
+    wrong = client.post("/account/delete", data={"password": "не-тот", "csrf_token": token})
+    assert wrong.status_code == 400
+    page = client.post("/account/delete", data={"password": PASSWORD, "csrf_token": token}).text
+
+    assert "все ваши данные удалены" in page
+    assert client.get("/", follow_redirects=False).headers["location"] == "/login"
+    assert "уже зарегистрирован" not in register(client)
+
+
+def test_account_deletion_needs_csrf_token(client: TestClient) -> None:
+    register(client)
+
+    response = client.post("/account/delete", data={"password": PASSWORD, "csrf_token": "x"})
+
+    assert response.status_code == 403

@@ -50,6 +50,8 @@
     button.link { background: none; color: var(--muted); padding: 0; font-size: 15px; }
     button.link:hover { color: var(--text); }
     button.link.danger { color: var(--error); }
+    button.danger-button { background: var(--error); }
+    button.danger-button:hover { background: #8f1c13; }
     .inline { display: inline; }
     .error, .notice { padding: 10px 12px; border-radius: 8px; margin-bottom: 16px; }
     .error { background: var(--error-bg); color: var(--error); }
@@ -100,7 +102,7 @@
       <a href="/categories" class="{{ 'active' if path.startswith('/categories') }}">Категории</a>
     </nav>
     <form method="post" action="/logout" class="user">
-      <span class="muted">{{ current.user.email }}</span>
+      <a href="/account" class="muted">{{ current.user.email }}</a>
       <input type="hidden" name="csrf_token" value="{{ current.csrf_token }}">
       <button type="submit" class="link">Выйти</button>
     </form>

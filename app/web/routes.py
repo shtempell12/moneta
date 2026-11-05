@@ -6,7 +6,14 @@ from fastapi.responses import RedirectResponse
 from app.core.security import tokens_match
 from app.services import auth
 from app.services.auth import AuthError
-from app.web.session import SESSION_COOKIE, DbSession, OptionalUser, set_session_cookie
+from app.web.session import (
+    SESSION_COOKIE,
+    DbSession,
+    OptionalUser,
+    RequiredUser,
+    check_csrf,
+    set_session_cookie,
+)
 from app.web.templating import templates
 
 router = APIRouter()
@@ -44,10 +51,10 @@ def register(
 
 
 @router.get("/login")
-def login_page(request: Request, current: OptionalUser) -> Response:
+def login_page(request: Request, current: OptionalUser, deleted: bool = False) -> Response:
     if current is not None:
         return _redirect("/")
-    return templates.TemplateResponse(request, "login.html")
+    return templates.TemplateResponse(request, "login.html", {"deleted": deleted})
 
 
 @router.post("/login")
@@ -76,5 +83,30 @@ def logout(
         raise HTTPException(status_code=403, detail="CSRF check failed")
     auth.logout(db, request.cookies[SESSION_COOKIE])
     response = _redirect("/login")
+    response.delete_cookie(SESSION_COOKIE)
+    return response
+
+
+@router.get("/account")
+def account_page(request: Request, current: RequiredUser) -> Response:
+    return templates.TemplateResponse(request, "account.html", {"current": current})
+
+
+@router.post("/account/delete")
+def delete_account(
+    request: Request,
+    db: DbSession,
+    current: RequiredUser,
+    password: Annotated[str, Form()],
+    csrf_token: Annotated[str, Form()],
+) -> Response:
+    check_csrf(current, csrf_token)
+    try:
+        auth.delete_account(db, current.user, password)
+    except AuthError as error:
+        return templates.TemplateResponse(
+            request, "account.html", {"current": current, "error": str(error)}, status_code=400
+        )
+    response = _redirect("/login?deleted=1")
     response.delete_cookie(SESSION_COOKIE)
     return response
