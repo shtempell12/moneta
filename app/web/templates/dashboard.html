@@ -69,4 +69,13 @@
 </div>
 {% endif %}
 {% endif %}
+{% if goals %}
+<div class="card">
+  <div class="row" style="align-items:center">
+    <h2>Цели</h2>
+    <a href="/goals" style="flex:0 0 auto">Все цели</a>
+  </div>
+  {% for goal, progress in goals %}{% include "_goal_progress.html" %}{% endfor %}
+</div>
+{% endif %}
 {% endblock %}

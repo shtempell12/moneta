@@ -18,7 +18,7 @@ from app.domain.statement import (
 from app.repositories import categories
 from app.repositories import transactions as transactions_repo
 from app.services import categories as categories_service
-from app.services import imports, plan, transactions
+from app.services import goals, imports, plan, transactions
 from app.services.categories import CategoryError
 from app.services.transactions import NotFoundError
 from app.web.session import DbSession, RequiredUser, check_csrf
@@ -66,6 +66,7 @@ def dashboard(
             "months": months,
             "summary": transactions.month_summary(db, current.user.id, selected),
             "plan": plan.month_plan_fact(db, current.user.id, selected),
+            "goals": goals.goals_with_progress(db, current.user.id, today()),
         },
     )
 
