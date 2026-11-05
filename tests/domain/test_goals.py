@@ -3,7 +3,7 @@ from decimal import Decimal
 
 import pytest
 
-from app.domain.goals import goal_progress, monthly_saving, months_until
+from app.domain.goals import GoalError, goal_progress, make_goal, monthly_saving, months_until
 
 TODAY = date(2026, 11, 5)
 
@@ -46,3 +46,29 @@ def test_goal_without_deadline_shows_only_progress() -> None:
     progress = goal_progress(Decimal("80000"), Decimal("20000"), None, TODAY)
 
     assert (progress.percent, progress.monthly) == (25, None)
+
+
+def test_new_goal_form_is_cleaned() -> None:
+    goal = make_goal("  Отпуск  в Сочи ", "120 000", "01.06.2027", TODAY)
+
+    assert (goal.name, goal.target, goal.deadline) == (
+        "Отпуск в Сочи",
+        Decimal("120000.00"),
+        date(2027, 6, 1),
+    )
+    assert make_goal("Подушка", "50000", "", TODAY).deadline is None
+
+
+@pytest.mark.parametrize(
+    ("name", "target", "deadline", "message"),
+    [
+        ("", "1000", "", "Назовите"),
+        ("Отпуск", "много", "", "числом"),
+        ("Отпуск", "0", "", "больше нуля"),
+        ("Отпуск", "1000", "вчера", "дата"),
+        ("Отпуск", "1000", "01.01.2026", "прошёл"),
+    ],
+)
+def test_invalid_goal_is_rejected(name: str, target: str, deadline: str, message: str) -> None:
+    with pytest.raises(GoalError, match=message):
+        make_goal(name, target, deadline, TODAY)

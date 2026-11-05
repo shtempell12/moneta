@@ -4,6 +4,9 @@ from dataclasses import dataclass
 from datetime import date
 from decimal import ROUND_CEILING, ROUND_HALF_UP, Decimal
 
+from app.domain.entries import MAX_AMOUNT
+from app.domain.parsing import parse_amount, parse_date
+
 ZERO = Decimal("0.00")
 
 
@@ -61,3 +64,47 @@ def monthly_saving(left: Decimal, months: int) -> Decimal:
     """Split what is left into equal monthly amounts, rounded up to whole rubles
     so the goal is not missed by kopecks: 100 000 over 3 months → 33 334."""
     return (left / months).quantize(Decimal("1"), ROUND_CEILING)
+
+
+MAX_NAME_LENGTH = 100
+
+
+class GoalError(ValueError):
+    """Invalid goal field; the message is safe to show to the user."""
+
+
+@dataclass(frozen=True)
+class NewGoal:
+    name: str
+    target: Decimal
+    deadline: date | None
+
+
+def make_goal(name: str, target: str, deadline: str, today: date) -> NewGoal:
+    """Check the «new goal» form: a name, a positive target and an optional future deadline."""
+    name = " ".join(name.split())
+    if not name:
+        raise GoalError("Назовите цель, например «Отпуск»")
+    if len(name) > MAX_NAME_LENGTH:
+        raise GoalError(f"Название не длиннее {MAX_NAME_LENGTH} символов")
+    amount = parse_money(target)
+    if not deadline.strip():
+        return NewGoal(name=name, target=amount, deadline=None)
+    try:
+        day = parse_date(deadline)
+    except ValueError:
+        raise GoalError("Срок — это дата, например 01.06.2027") from None
+    if day < today:
+        raise GoalError("Срок уже прошёл — выберите дату в будущем")
+    return NewGoal(name=name, target=amount, deadline=day)
+
+
+def parse_money(text: str) -> Decimal:
+    """A positive amount typed by the user: «120 000» → 120000.00."""
+    try:
+        amount = parse_amount(text)
+    except ValueError:
+        raise GoalError("Сумма должна быть числом, например 120 000") from None
+    if not amount.is_finite() or amount <= 0 or amount > MAX_AMOUNT:
+        raise GoalError("Сумма должна быть больше нуля")
+    return amount
