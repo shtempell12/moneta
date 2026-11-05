@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
 from app.db.models import Event
@@ -22,3 +22,8 @@ def count_since(
         Event.payload[payload_key].astext == payload_value,
     )
     return session.scalar(query) or 0
+
+
+def delete_with_payload(session: Session, payload_key: str, payload_value: str) -> None:
+    """Delete events that point to someone by a payload value, e.g. failed logins by email hash."""
+    session.execute(delete(Event).where(Event.payload[payload_key].astext == payload_value))
