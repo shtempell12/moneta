@@ -60,7 +60,7 @@ def category_form_id(page: str, name: str) -> str:
 
 
 def test_pages_require_login(client: TestClient) -> None:
-    for path in ("/", "/transactions", "/import", "/categories", "/plan", "/transactions/new"):
+    for path in ("/", "/transactions", "/import", "/categories", "/plan", "/goals"):
         response = client.get(path, follow_redirects=False)
         assert response.headers["location"] == "/login", path
 
@@ -253,3 +253,33 @@ def test_invalid_plan_shows_error(client: TestClient) -> None:
 
     assert response.status_code == 400
     assert "не сумма" in response.text
+
+
+def test_goal_is_created_filled_and_shown_on_dashboard(client: TestClient) -> None:
+    token = csrf_token(register(client))
+
+    page = client.post(
+        "/goals",
+        data={"name": "Отпуск", "target": "120 000", "deadline": "", "csrf_token": token},
+    ).text
+    goal = re.search(r"/goals/(\d+)/save", page)
+    assert goal
+    page = client.post(
+        f"/goals/{goal.group(1)}/save",
+        data={"amount": "30 000", "action": "in", "csrf_token": token},
+    ).text
+
+    assert "25%" in page
+    assert "Отпуск" in client.get("/").text
+
+
+def test_invalid_goal_keeps_typed_values(client: TestClient) -> None:
+    token = csrf_token(register(client))
+
+    response = client.post(
+        "/goals", data={"name": "Отпуск", "target": "много", "csrf_token": token}
+    )
+
+    assert response.status_code == 400
+    assert "числом" in response.text
+    assert 'value="Отпуск"' in response.text

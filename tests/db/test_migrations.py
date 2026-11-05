@@ -11,6 +11,7 @@ EXPECTED_TABLES = {
     "merchant_rules",
     "events",
     "budget_lines",
+    "goals",
 }
 
 

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Цели — Монета{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>Цели</h1>
+  <p class="muted">Копите на отпуск, подушку безопасности или крупную покупку — Монета посчитает, сколько откладывать в месяц.</p>
+  {% if error %}<div class="error">{{ error }}</div>{% endif %}
+  {% for goal, progress in goals %}
+  <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:12px">
+    {% include "_goal_progress.html" %}
+    <div class="row" style="align-items:center">
+      <form method="post" action="/goals/{{ goal.id }}/save" class="row" style="align-items:center">
+        <input type="hidden" name="csrf_token" value="{{ current.csrf_token }}">
+        <input type="text" name="amount" inputmode="decimal" placeholder="10 000" required aria-label="Сумма для цели «{{ goal.name }}»" style="margin:0;max-width:140px">
+        <button type="submit" name="action" value="in">Отложил</button>
+        <button type="submit" name="action" value="out" class="link">Взял</button>
+      </form>
+      <form method="post" action="/goals/{{ goal.id }}/delete" class="inline" style="flex:0 0 auto"
+            onsubmit='return confirm({{ ("Удалить цель «" ~ goal.name ~ "»?") | tojson }})'>
+        <input type="hidden" name="csrf_token" value="{{ current.csrf_token }}">
+        <button type="submit" class="link danger">Удалить</button>
+      </form>
+    </div>
+  </div>
+  {% else %}
+  <p>Целей пока нет — добавьте первую ниже.</p>
+  {% endfor %}
+</div>
+<div class="card">
+  <h2>Новая цель</h2>
+  <form method="post" action="/goals" class="row">
+    <input type="hidden" name="csrf_token" value="{{ current.csrf_token }}">
+    <label>Название<input type="text" name="name" value="{{ form.name }}" required maxlength="100" placeholder="Отпуск"></label>
+    <label>Сколько нужно, ₽<input type="text" name="target" value="{{ form.target }}" required inputmode="decimal" placeholder="120 000"></label>
+    <label>К какому сроку<input type="date" name="deadline" value="{{ form.deadline }}"></label>
+    <button type="submit">Добавить</button>
+  </form>
+</div>
+{% endblock %}

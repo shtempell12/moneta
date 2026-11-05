@@ -6,7 +6,7 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.db.models import BudgetLine, Category, Event, MerchantRule, Transaction, User
+from app.db.models import BudgetLine, Category, Event, Goal, MerchantRule, Transaction, User
 from app.domain.enums import CategorySource, UserRole
 
 
@@ -120,6 +120,7 @@ def test_deleting_user_removes_all_their_data(session: Session) -> None:
                 month=date(2026, 10, 1),
                 amount=Decimal("30000.00"),
             ),
+            Goal(user_id=user.id, name="Отпуск", target_amount=Decimal("120000.00")),
         ]
     )
     session.flush()
@@ -128,7 +129,7 @@ def test_deleting_user_removes_all_their_data(session: Session) -> None:
     session.flush()
     session.expunge_all()
 
-    for model in (Category, Transaction, MerchantRule, Event, BudgetLine):
+    for model in (Category, Transaction, MerchantRule, Event, BudgetLine, Goal):
         assert session.scalar(select(func.count()).select_from(model)) == 0
 
 

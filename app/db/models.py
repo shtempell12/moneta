@@ -149,6 +149,25 @@ class BudgetLine(Base):
     )
 
 
+class Goal(Base):
+    """A saving goal, e.g. «Отпуск»: 120 000 ₽ by June 2027."""
+
+    __tablename__ = "goals"
+    __table_args__ = (
+        CheckConstraint("target_amount > 0", name="target_positive"),
+        CheckConstraint("saved_amount >= 0", name="saved_not_negative"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    name: Mapped[str] = mapped_column(String(100))
+    target_amount: Mapped[Decimal] = mapped_column(Numeric(12, 2))
+    # Changed by the user's «Отложил» / «Взял» actions; each one is also logged in events.
+    saved_amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=Decimal("0.00"))
+    deadline: Mapped[date | None] = mapped_column(Date)
+    created_at: Mapped[datetime] = _created_at()
+
+
 class Event(Base):
     """User actions log — the source of admin metrics and research data."""
 

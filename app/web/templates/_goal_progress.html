@@ -1,0 +1,11 @@
+<div class="bar-row">
+  <div>{{ goal.name }}</div>
+  <div class="bar"><span class="{{ 'done' if progress.reached }}" style="width: {{ progress.percent }}%"></span></div>
+  <div class="muted">{{ goal.saved_amount | rub }} из {{ goal.target_amount | rub }} · {{ progress.percent }}%</div>
+</div>
+<p class="muted" style="margin:0 0 12px">
+  {% if progress.reached %}Цель достигнута
+  {% elif progress.monthly %}Чтобы успеть к {{ goal.deadline.strftime("%d.%m.%Y") }}, откладывайте по {{ progress.monthly | rub }} в месяц
+  {% elif goal.deadline %}Срок {{ goal.deadline.strftime("%d.%m.%Y") }} прошёл — осталось накопить {{ progress.left | rub }}
+  {% else %}Осталось накопить {{ progress.left | rub }}{% endif %}
+</p>
