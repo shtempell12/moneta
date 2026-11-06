@@ -117,3 +117,29 @@ def test_session_expires_after_thirty_days(session: Session) -> None:
 
 def test_unknown_token_has_no_session(session: Session) -> None:
     assert auth.find_session(session, "made-up-token") is None
+
+
+def test_deleting_account_removes_all_data_and_the_email_trace(session: Session) -> None:
+    register_anna(session)
+    with pytest.raises(AuthError):
+        auth.login(session, EMAIL, "wrong-password")
+    user = session.scalars(select(User)).one()
+
+    auth.delete_account(session, user, PASSWORD)
+
+    assert session.scalars(select(User)).all() == []
+    assert session.scalars(select(Category)).all() == []
+    remaining = session.scalars(select(Event)).all()
+    assert [(event.type, event.user_id, event.payload) for event in remaining] == [
+        ("account_deleted", None, {})
+    ]
+
+
+def test_account_is_not_deleted_with_a_wrong_password(session: Session) -> None:
+    register_anna(session)
+    user = session.scalars(select(User)).one()
+
+    with pytest.raises(AuthError, match="Неверный пароль"):
+        auth.delete_account(session, user, "wrong-password")
+
+    assert session.scalars(select(User)).one() == user

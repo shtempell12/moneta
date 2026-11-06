@@ -69,6 +69,32 @@ def login(session: Session, email: str, password: str, now: datetime | None = No
     return token
 
 
+def delete_account(
+    session: Session, user: User, password: str, now: datetime | None = None
+) -> None:
+    """Delete the user and all their data (152-FZ). The password is asked again,
+    so a forgotten open browser is not enough to wipe someone's budget."""
+    now = now or datetime.now(UTC)
+    email_key = hash_token(user.email)
+    recent_failures = events.count_since(
+        session, "login_failed", now - FAILED_LOGIN_WINDOW, "email_hash", email_key
+    )
+    if recent_failures >= MAX_FAILED_LOGINS:
+        raise AuthError("Слишком много попыток. Попробуйте через 15 минут")
+    if not verify_password(user.password_hash, password):
+        events.add(session, "login_failed", user.id, {"email_hash": email_key})
+        session.commit()
+        raise AuthError("Неверный пароль")
+
+    # Everything else (sessions, categories, transactions, plans, goals, own events)
+    # goes with the user through ON DELETE CASCADE.
+    events.delete_with_payload(session, "email_hash", email_key)
+    session.delete(user)
+    # Kept without a user or any detail: only the count of deletions, for retention metrics.
+    events.add(session, "account_deleted", None)
+    session.commit()
+
+
 def logout(session: Session, token: str) -> None:
     user_id = user_sessions.delete_by_token_hash(session, hash_token(token))
     if user_id is not None:

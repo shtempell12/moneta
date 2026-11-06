@@ -3,6 +3,7 @@
 {% block content %}
 <div class="card narrow">
   <h1>Вход</h1>
+  {% if deleted %}<div class="notice">Аккаунт и все ваши данные удалены.</div>{% endif %}
   {% if error %}<div class="error">{{ error }}</div>{% endif %}
   <form method="post" action="/login">
     <label>Email
