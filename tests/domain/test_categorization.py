@@ -1,7 +1,9 @@
 from app.domain.categorization import (
     BankCategoryCategorizer,
     CascadeCategorizer,
+    ClassifierCategorizer,
     HistoryCategorizer,
+    Prediction,
     TransactionFeatures,
     merchant_category,
 )
@@ -89,3 +91,32 @@ def test_merchant_category_tie_goes_to_the_latest_choice() -> None:
 
 def test_first_choice_for_a_merchant_is_taken_as_is() -> None:
     assert merchant_category([BEAUTY], BEAUTY) == BEAUTY
+
+
+def test_classifier_recognizes_a_new_branch_of_a_known_merchant() -> None:
+    classifier = ClassifierCategorizer(
+        [
+            (features("студия лучик"), KIDS_CLUBS),
+            (features("детская студия лучик"), KIDS_CLUBS),
+            (features("пятерочка химки"), GROCERIES),
+            (features("пятерочка москва"), GROCERIES),
+        ]
+    )
+
+    prediction = classifier.predict(features("пятерочка мытищи"))
+
+    assert prediction is not None
+    assert prediction.category_id == GROCERIES
+    assert 0.5 < prediction.confidence <= 1
+
+
+def test_classifier_with_one_category_always_answers_it() -> None:
+    classifier = ClassifierCategorizer([(features("студия лучик"), KIDS_CLUBS)])
+
+    assert classifier.predict(features("что угодно")) == Prediction(
+        KIDS_CLUBS, CategorySource.HISTORY, 1.0
+    )
+
+
+def test_classifier_without_history_has_no_opinion() -> None:
+    assert ClassifierCategorizer([]).predict(features("пятерочка")) is None

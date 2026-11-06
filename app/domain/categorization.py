@@ -9,6 +9,10 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Protocol
 
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
+from sklearn.pipeline import Pipeline, make_pipeline
+
 from app.domain.enums import CategorySource
 
 # Bank categories (lowercase) → names of the default Moneta categories.
@@ -91,6 +95,49 @@ class BankCategoryCategorizer:
             return None
         # Bank categories are generic, so they are trusted less than the user's own history.
         return Prediction(category_id, CategorySource.BANK, confidence=0.5)
+
+
+class ClassifierCategorizer:
+    """Learns from the user's own categorized transactions which words point to which category.
+
+    Unlike HistoryCategorizer it also handles merchants the user has never categorized:
+    «пятерочка москва 12» is close to «пятерочка химки» by its letter sequences
+    (character n-grams), so it lands in the same category.
+    """
+
+    def __init__(self, examples: Sequence[tuple[TransactionFeatures, int]]) -> None:
+        self._model: Pipeline | None = None
+        self._only_category: int | None = None
+        categories = {category_id for _, category_id in examples}
+        if len(categories) == 1:
+            # A classifier needs at least two classes; with one there is nothing to choose.
+            self._only_category = categories.pop()
+        elif categories:
+            self._model = make_pipeline(
+                TfidfVectorizer(analyzer="char_wb", ngram_range=(3, 5)),
+                LogisticRegression(max_iter=1000),
+            )
+            self._model.fit(
+                [_text(features) for features, _ in examples],
+                [category_id for _, category_id in examples],
+            )
+
+    def predict(self, transaction: TransactionFeatures) -> Prediction | None:
+        if self._only_category is not None:
+            return Prediction(self._only_category, CategorySource.HISTORY, confidence=1.0)
+        if self._model is None:
+            return None
+        probabilities = self._model.predict_proba([_text(transaction)])[0]
+        best = int(probabilities.argmax())
+        return Prediction(
+            int(self._model.classes_[best]),
+            CategorySource.HISTORY,
+            confidence=float(probabilities[best]),
+        )
+
+
+def _text(transaction: TransactionFeatures) -> str:
+    return f"{transaction.merchant_key} {transaction.bank_category or ''}".strip().lower()
 
 
 class CascadeCategorizer:
