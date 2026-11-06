@@ -1,4 +1,4 @@
-.PHONY: up down logs migrate demo-data test lint format typecheck check backup restore
+.PHONY: up down logs migrate demo-data research test lint format typecheck check backup restore
 
 up:
 	docker compose up -d --build
@@ -17,6 +17,10 @@ migrate:
 demo-data:
 	uv run python scripts/make_demo_statement.py
 
+# H-ML1 comparison; with DATA=data/labeled.csv runs on real anonymized data.
+research:
+	uv run python -m research.evaluate $(DATA)
+
 # Needs the database container running (make up).
 test:
 	uv run pytest
@@ -30,7 +34,7 @@ format:
 	uv run ruff check --fix .
 
 typecheck:
-	uv run mypy app tests scripts
+	uv run mypy app tests scripts research
 
 check: lint typecheck test
 
