@@ -1,4 +1,4 @@
-.PHONY: up down logs migrate demo-data research test lint format typecheck check backup restore
+.PHONY: up down logs migrate demo-data research statements-check test lint format typecheck check backup restore
 
 up:
 	docker compose up -d --build
@@ -20,6 +20,10 @@ demo-data:
 # H-ML1 comparison; with DATA=data/labeled.csv runs on real anonymized data.
 research:
 	uv run python -m research.evaluate $(DATA)
+
+# H-DEV2: real statements named <bank>_<anything>.csv|xlsx in data/statements/.
+statements-check:
+	uv run python -m research.statements_check data/statements
 
 # Needs the database container running (make up).
 test:
