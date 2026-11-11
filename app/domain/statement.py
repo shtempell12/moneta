@@ -1,4 +1,4 @@
-"""Reading bank statements (CSV / Excel) into a uniform list of rows."""
+"""Reading bank statements (CSV / Excel / PDF) into a uniform list of rows."""
 
 import csv
 import io
@@ -9,6 +9,7 @@ from decimal import Decimal
 import pandas as pd
 
 from app.domain.parsing import parse_amount, parse_date
+from app.domain.pdf_statement import read_pdf_rows
 
 # Banks put a few lines of preamble (account number, period) above the table.
 _HEADER_SEARCH_ROWS = 20
@@ -60,7 +61,9 @@ class StatementFormatError(ValueError):
 
 def read_table(content: bytes, file_name: str) -> pd.DataFrame:
     """Read a CSV or Excel file into a table with the header row detected automatically."""
-    if file_name.lower().endswith((".xlsx", ".xlsm")):
+    if file_name.lower().endswith(".pdf"):
+        raw = _read_pdf(content)
+    elif file_name.lower().endswith((".xlsx", ".xlsm")):
         raw = pd.read_excel(io.BytesIO(content), header=None, dtype=object)
     elif file_name.lower().endswith((".csv", ".txt")):
         text = _decode(content)
@@ -74,13 +77,27 @@ def read_table(content: bytes, file_name: str) -> pd.DataFrame:
             engine="python",
         )
     else:
-        raise StatementFormatError("Поддерживаются файлы CSV и Excel (.xlsx)")
+        raise StatementFormatError("Поддерживаются файлы CSV, Excel (.xlsx) и PDF")
 
     header_index = _find_header_row(raw)
     table = raw.iloc[header_index + 1 :].reset_index(drop=True)
     table.columns = [str(name).strip() for name in raw.iloc[header_index]]
     table.attrs["first_data_line"] = header_index + 2
     return table
+
+
+def _read_pdf(content: bytes) -> pd.DataFrame:
+    try:
+        rows = read_pdf_rows(content)
+    except ValueError:
+        raise StatementFormatError(
+            "Не удалось открыть PDF — скачайте выписку из банка заново"
+        ) from None
+    if not rows:
+        raise StatementFormatError(
+            "В PDF не нашли таблицу операций — попробуйте выгрузить выписку в Excel или CSV"
+        )
+    return pd.DataFrame(rows, dtype=object)
 
 
 def guess_columns(columns: list[str]) -> dict[str, str | None]:

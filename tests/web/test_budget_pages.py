@@ -78,11 +78,11 @@ def test_unsupported_file_shows_error(client: TestClient) -> None:
     response = client.post(
         "/import/preview",
         data={"csrf_token": token},
-        files={"file": ("statement.pdf", b"%PDF-1.4", "application/pdf")},
+        files={"file": ("statement.docx", b"PK", "application/octet-stream")},
     )
 
     assert response.status_code == 400
-    assert "CSV и Excel" in response.text
+    assert "CSV, Excel (.xlsx) и PDF" in response.text
 
 
 def test_import_without_csrf_token_is_forbidden(client: TestClient) -> None:
