@@ -45,6 +45,10 @@ class User(Base):
     role: Mapped[UserRole] = mapped_column(_str_enum(UserRole), default=UserRole.USER)
     # Consent to personal data processing (152-FZ) is required to register.
     pd_consent_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    # Set when the first-run questions are answered or skipped.
+    onboarded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # Optional answer from onboarding, used for the 50/30/20 guide on the dashboard.
+    monthly_income: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))
     created_at: Mapped[datetime] = _created_at()
 
 

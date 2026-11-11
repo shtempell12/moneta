@@ -108,3 +108,10 @@ def parse_money(text: str) -> Decimal:
     if not amount.is_finite() or amount <= 0 or amount > MAX_AMOUNT:
         raise GoalError("Сумма должна быть больше нуля")
     return amount
+
+
+def months_to_reach(left: Decimal, per_month: Decimal) -> int:
+    """How many months it takes at a given pace: 120 000 at 10 000 a month → 12."""
+    if per_month <= 0:
+        raise ValueError("per_month must be positive")
+    return int((left / per_month).to_integral_value(ROUND_CEILING))
