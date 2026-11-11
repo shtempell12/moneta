@@ -128,8 +128,13 @@ def test_empty_lines_are_skipped() -> None:
     assert parsed.errors == []
 
 
-def test_pdf_is_rejected_with_a_clear_message() -> None:
-    with pytest.raises(StatementFormatError, match="CSV и Excel"):
+def test_unsupported_format_is_rejected_with_a_clear_message() -> None:
+    with pytest.raises(StatementFormatError, match="CSV, Excel"):
+        read_table(b"PK", "statement.docx")
+
+
+def test_broken_pdf_is_rejected_with_a_clear_message() -> None:
+    with pytest.raises(StatementFormatError, match="Не удалось открыть PDF"):
         read_table(b"%PDF-1.4", "statement.pdf")
 
 
