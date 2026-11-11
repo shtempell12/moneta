@@ -1,4 +1,4 @@
-.PHONY: up down logs migrate demo-data research statements-check test lint format typecheck check backup restore
+.PHONY: up down logs migrate demo-data research statements-check export-labeled test lint format typecheck check backup restore
 
 up:
 	docker compose up -d --build
@@ -24,6 +24,14 @@ research:
 # H-DEV2: real statements named <bank>_<anything>.csv|xlsx in data/statements/.
 statements-check:
 	uv run python -m research.statements_check data/statements
+
+# H-ML1 pilot: a participant's checked categories from the local database → data/labeled.csv.
+# From the host the database is localhost, not db, so the URL is built from .env.
+export-labeled:
+	@test -n "$(EMAIL)" -a -n "$(NAME)" || (echo "Usage: make export-labeled EMAIL=... NAME=participant-1" && exit 1)
+	set -a && . ./.env && set +a && \
+		DATABASE_URL=postgresql+psycopg://$$POSTGRES_USER:$$POSTGRES_PASSWORD@localhost:5432/$$POSTGRES_DB \
+		uv run python -m research.export_labeled $(EMAIL) $(NAME)
 
 # Needs the database container running (make up).
 test:

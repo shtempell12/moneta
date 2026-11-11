@@ -51,10 +51,10 @@ def test_broken_rows_are_counted(tmp_path: Path) -> None:
     assert not result.loaded_without_setup
 
 
-def test_pdf_is_reported_not_crashed(tmp_path: Path) -> None:
+def test_broken_file_is_reported_not_crashed(tmp_path: Path) -> None:
     (tmp_path / "vtb_statement.pdf").write_bytes(b"%PDF-1.4")
 
     [result] = check_folder(tmp_path)
 
     assert not result.columns_found
-    assert "CSV" in result.problem
+    assert "PDF" in result.problem

@@ -30,7 +30,7 @@ def test_text_without_operations_gives_nothing() -> None:
 
 
 def test_tables_of_all_pages_are_joined_under_one_header() -> None:
-    page_1 = [
+    page_1: list[list[str | None]] = [
         ["Дата операции", "Документ", "Назначение платежа", "Сумма операции", None],
         ["", "", "", "в валюте счёта", "в валюте операции"],
         ["03.10.2026 10:15:00", "123", "Оплата товаров\nи услуг", "- 450.00 ₽", "- 450.00 ₽"],
