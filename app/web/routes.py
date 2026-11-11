@@ -45,7 +45,7 @@ def register(
         return templates.TemplateResponse(
             request, "register.html", {"error": str(error), "email": email}, status_code=400
         )
-    response = _redirect("/")
+    response = _redirect("/onboarding")
     set_session_cookie(response, token)
     return response
 

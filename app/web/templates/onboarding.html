@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Знакомство — Монета{% endblock %}
+{% block content %}
+<div class="card narrow" style="max-width:560px">
+  <h1>Давайте познакомимся</h1>
+  <p class="muted">Четыре вопроса — чтобы Монета сразу была настроена под вас. Любой можно пропустить.</p>
+  {% if error %}<div class="error">{{ error }}</div>{% endif %}
+  <form method="post" action="/onboarding">
+    <input type="hidden" name="csrf_token" value="{{ current.csrf_token }}">
+
+    <h2>1. На что копите?</h2>
+    <div class="row">
+      <label>Цель<input type="text" name="goal_name" value="{{ form.goal_name or '' }}" maxlength="100" placeholder="Отпуск"></label>
+      <label>Сумма, ₽<input type="text" name="goal_target" value="{{ form.goal_target or '' }}" inputmode="decimal" placeholder="120 000"></label>
+      <label>К сроку<input type="date" name="goal_deadline" value="{{ form.goal_deadline or '' }}"></label>
+    </div>
+
+    <h2>2. Доход семьи в месяц</h2>
+    <label>Примерно, ₽ — покажем ориентир, сколько тратить и откладывать
+      <input type="text" name="income" value="{{ form.income or '' }}" inputmode="decimal" placeholder="100 000">
+    </label>
+
+    <h2>3. Ваши категории</h2>
+    <p class="muted">Базовые уже есть. Добавьте те, что нужны именно вам.</p>
+    {% for name in suggested %}
+    <label class="checkbox"><input type="checkbox" name="categories" value="{{ name }}" {{ 'checked' if name in form.categories }}> {{ name }}</label>
+    {% endfor %}
+    <label>Своя категория<input type="text" name="custom_category" value="{{ form.custom_category or '' }}" maxlength="100" placeholder="Например, «Дача»"></label>
+
+    <h2>4. Как вы сейчас ведёте бюджет?</h2>
+    {% for code, label in tools.items() %}
+    <label class="checkbox"><input type="radio" name="current_tool" value="{{ code }}" {{ 'checked' if form.current_tool == code }}> {{ label }}</label>
+    {% endfor %}
+
+    <button type="submit" style="margin-top:8px">Готово</button>
+  </form>
+  <form method="post" action="/onboarding/skip" style="margin-top:12px">
+    <input type="hidden" name="csrf_token" value="{{ current.csrf_token }}">
+    <button type="submit" class="link">Пропустить</button>
+  </form>
+</div>
+{% endblock %}

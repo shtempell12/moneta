@@ -2,6 +2,19 @@
 {% block title %}Дашборд — Монета{% endblock %}
 {% block content %}
 {% include "_month_switch.html" %}
+{% if guide %}
+<div class="card">
+  <h2>Ориентир по правилу 50/30/20</h2>
+  <div class="stats">
+    <div class="stat"><div class="muted">Обязательное, 50%</div><div class="value">{{ guide.rule.needs | rub }}</div></div>
+    <div class="stat"><div class="muted">Желания, 30%</div><div class="value">{{ guide.rule.wants | rub }}</div></div>
+    <div class="stat"><div class="muted">Откладывать, 20%</div><div class="value">{{ guide.rule.savings | rub }}</div></div>
+  </div>
+  {% if guide.goal_months %}
+  <p class="muted" style="margin:12px 0 0">Если откладывать {{ guide.rule.savings | rub }} в месяц, на цель «{{ guide.goal_name }}» уйдёт {{ guide.goal_months }} {{ guide.goal_months | plural('месяц', 'месяца', 'месяцев') }}.</p>
+  {% endif %}
+</div>
+{% endif %}
 {% if summary.expenses_count == 0 %}
 <div class="card">
   <h1>{{ month | month_title }}</h1>

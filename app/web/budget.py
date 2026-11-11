@@ -1,13 +1,18 @@
 import base64
 import binascii
+from dataclasses import dataclass
 from datetime import UTC, date, datetime
+from decimal import Decimal
 from typing import Annotated
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Form, HTTPException, Request, Response, UploadFile
 from fastapi.responses import RedirectResponse
 
+from app.db.models import Goal
+from app.domain.goals import GoalProgress, months_to_reach
 from app.domain.months import month_param, parse_month
+from app.domain.onboarding import BudgetRule, budget_rule
 from app.domain.statement import (
     ColumnMapping,
     StatementFormatError,
@@ -57,6 +62,7 @@ def dashboard(
     request: Request, db: DbSession, current: RequiredUser, month: str | None = None
 ) -> Response:
     selected, months = selected_month(db, current.user.id, month)
+    user_goals = goals.goals_with_progress(db, current.user.id, today())
     return templates.TemplateResponse(
         request,
         "dashboard.html",
@@ -66,9 +72,34 @@ def dashboard(
             "months": months,
             "summary": transactions.month_summary(db, current.user.id, selected),
             "plan": plan.month_plan_fact(db, current.user.id, selected),
-            "goals": goals.goals_with_progress(db, current.user.id, today()),
+            "goals": user_goals,
+            "guide": _income_guide(current.user.monthly_income, user_goals),
         },
     )
+
+
+@dataclass(frozen=True)
+class IncomeGuide:
+    rule: BudgetRule
+    goal_name: str | None
+    goal_months: int | None
+
+
+def _income_guide(
+    income: Decimal | None, user_goals: list[tuple[Goal, GoalProgress]]
+) -> IncomeGuide | None:
+    """The 50/30/20 split of the income from onboarding and, for the first goal not yet
+    reached, how many months it takes when the 20% are put aside."""
+    if not income:
+        return None
+    rule = budget_rule(income)
+    open_goal = next(
+        ((goal, progress) for goal, progress in user_goals if not progress.reached), None
+    )
+    if open_goal is None or not rule.savings:
+        return IncomeGuide(rule, None, None)
+    goal, progress = open_goal
+    return IncomeGuide(rule, goal.name, months_to_reach(progress.left, rule.savings))
 
 
 @router.get("/transactions")
@@ -196,8 +227,10 @@ def _categories_response(
 
 
 @router.get("/import")
-def import_page(request: Request, current: RequiredUser) -> Response:
-    return templates.TemplateResponse(request, "import_upload.html", {"current": current})
+def import_page(request: Request, current: RequiredUser, welcome: bool = False) -> Response:
+    return templates.TemplateResponse(
+        request, "import_upload.html", {"current": current, "welcome": welcome}
+    )
 
 
 @router.post("/import/preview")
