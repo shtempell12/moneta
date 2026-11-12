@@ -29,6 +29,13 @@ class LabeledTransaction:
     def merchant(self) -> str:
         return merchant_key(self.description)
 
+    @property
+    def is_transfer(self) -> bool:
+        """A transfer to a person or between own accounts: outside the H-ML1 boundary,
+        as it is not a purchase and its category is not in the statement."""
+        text = f"{self.bank_category or ''} {self.description}".lower()
+        return "перевод" in text
+
 
 def read_dataset(path: Path) -> list[LabeledTransaction]:
     with path.open(encoding="utf-8", newline="") as file:

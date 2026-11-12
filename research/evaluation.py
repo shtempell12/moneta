@@ -1,7 +1,8 @@
 """H-ML1 evaluation: train on a user's earlier months, check on the last one.
 
-Only expenses are checked. A transaction a categorizer has no opinion about counts as
-a miss: for the user it is the same as a wrong category — it has to be fixed by hand.
+Only expenses are checked, and transfers are left out by the hypothesis boundary (they are
+counted separately). A transaction a categorizer has no opinion about counts as a miss:
+for the user it is the same as a wrong category — it has to be fixed by hand.
 """
 
 from collections import defaultdict
@@ -17,6 +18,8 @@ from research.dataset import LabeledTransaction
 class Split:
     train: list[LabeledTransaction]
     test: list[LabeledTransaction]
+    # Expenses of the test month left out by the hypothesis boundary (transfers).
+    transfers: int = 0
 
 
 @dataclass(frozen=True)
@@ -28,6 +31,7 @@ class UserResult:
     answered: int
     mixed_total: int
     mixed_correct: int
+    transfers: int = 0
 
     @property
     def accuracy(self) -> float:
@@ -42,9 +46,11 @@ def split_last_month(rows: Sequence[LabeledTransaction], history_days: int | Non
     """
     test_month = max(row.date for row in rows).replace(day=1)
     since = test_month - timedelta(days=history_days) if history_days else date.min
+    expenses = [row for row in rows if row.date >= test_month and row.amount < 0]
     return Split(
         train=[row for row in rows if since <= row.date < test_month],
-        test=[row for row in rows if row.date >= test_month and row.amount < 0],
+        test=[row for row in expenses if not row.is_transfer],
+        transfers=sum(row.is_transfer for row in expenses),
     )
 
 
@@ -89,6 +95,7 @@ def evaluate(
                         for row, hit in zip(split.test, hits, strict=True)
                         if row.merchant in mixed
                     ),
+                    transfers=split.transfers,
                 )
             )
     return results
