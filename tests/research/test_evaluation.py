@@ -85,3 +85,13 @@ def test_dataset_survives_a_round_trip_through_csv(tmp_path: Path) -> None:
 def test_synthetic_data_is_the_same_for_the_same_seed() -> None:
     assert generate(seed=1) == generate(seed=1)
     assert {row.user for row in generate()} == {"family-1", "family-2", "family-3", "family-4"}
+
+
+def test_transfers_are_left_out_of_the_check_but_counted() -> None:
+    transfer = tx(date(2026, 10, 12), "Перевод Ивану И.", "Подарки", "Перевод с карты")
+
+    split = split_last_month([*ROWS, transfer])
+
+    assert transfer not in split.test
+    assert split.transfers == 1
+    assert evaluate([*ROWS, transfer])[0].transfers == 1

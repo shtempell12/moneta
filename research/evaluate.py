@@ -28,7 +28,13 @@ def main(argv: Sequence[str]) -> None:
 
     per_user = evaluate(rows)
     _write(REPORTS / f"h_ml1_{source}_per_user.csv", [asdict(row) for row in per_user])
-    print(f"Пользователей: {len({row.user for row in rows})}, операций: {len(rows)}\n")
+    print(f"Пользователей: {len({row.user for row in rows})}, операций: {len(rows)}")
+    checked = {row.user: row.total for row in per_user if row.approach == "bank"}
+    transfers = {row.user: row.transfers for row in per_user if row.approach == "bank"}
+    print(
+        f"Проверочный месяц: трат {sum(checked.values())}, "
+        f"переводов вне границы гипотезы {sum(transfers.values())}\n"
+    )
     _print_summary("Вся история", per_user)
 
     curve = []
