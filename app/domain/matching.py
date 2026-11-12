@@ -24,6 +24,7 @@ class TableRow:
     amount: Decimal
     category: str
     note: str = ""
+    spender: str | None = None
 
 
 @dataclass(frozen=True)
