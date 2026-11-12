@@ -17,3 +17,5 @@ class CategorySource(StrEnum):
     BANK = "bank"
     HISTORY = "history"
     MANUAL = "manual"
+    # Taken from the user's own budget table matched with the statement: the user's choice too.
+    TABLE = "table"

@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Таблица загружена — Монета{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>Таблица загружена</h1>
+  <div class="stats">
+    <div class="stat"><div class="muted">Строк в таблице</div><div class="value">{{ result.rows }}</div></div>
+    <div class="stat"><div class="muted">Сопоставлено с выписками</div><div class="value">{{ result.matched }}</div></div>
+    <div class="stat"><div class="muted">Новых категорий</div><div class="value">{{ result.categories_created }}</div></div>
+  </div>
+  {% if result.unmatched %}
+  <p class="muted">{{ result.unmatched }} {{ result.unmatched | plural('строка осталась', 'строки остались', 'строк остались') }} без пары: это наличные, переводы или месяцы, за которые ещё нет выписки.</p>
+  {% endif %}
+  {% if result.errors %}
+  <p class="muted">{{ result.errors }} {{ result.errors | plural('строку', 'строки', 'строк') }} не удалось прочитать — проверьте дату и сумму в них.</p>
+  {% endif %}
+  {% if result.matched %}
+  <p>Магазины запомнили ваши категории — новые выписки будут раскладываться по ним сразу.</p>
+  <a class="button" href="/transactions">Посмотреть траты</a>
+  {% else %}
+  <p>Ни одна строка не нашла пару. Загрузите <a href="/import">выписку банка</a> за те же месяцы и загрузите таблицу ещё раз.</p>
+  {% endif %}
+</div>
+{% endblock %}

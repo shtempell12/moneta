@@ -12,6 +12,7 @@ SOURCE_LABELS = {
     CategorySource.BANK: "по банку",
     CategorySource.HISTORY: "по истории",
     CategorySource.MANUAL: "вручную",
+    CategorySource.TABLE: "из таблицы",
 }
 
 

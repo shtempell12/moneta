@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Таблица бюджета — Монета{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>Загрузить свою таблицу бюджета</h1>
+  <p>Если вы вели бюджет в Excel или Google Таблицах, Монета возьмёт из таблицы ваши категории
+     и разложит по ним операции из выписок — сразу, без ручной разметки.</p>
+  <p class="muted">Сначала загрузите <a href="/import">выписку банка</a> за те же месяцы: строки таблицы сопоставляются с операциями выписки по сумме и дате.
+     В Google Таблицах: «Файл → Скачать → Microsoft Excel».</p>
+  {% if error %}<div class="error">{{ error }}</div>{% endif %}
+  <form method="post" action="/budget-table/preview" enctype="multipart/form-data" class="row">
+    <input type="hidden" name="csrf_token" value="{{ current.csrf_token }}">
+    <label>Файл таблицы<input type="file" name="file" accept=".xlsx,.csv" required></label>
+    <button type="submit">Дальше</button>
+  </form>
+</div>
+{% endblock %}

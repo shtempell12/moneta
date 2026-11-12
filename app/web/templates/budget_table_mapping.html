@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Колонки таблицы — Монета{% endblock %}
+{% set fields = [("date", "Дата", True), ("amount", "Сумма", True), ("category", "Категория / статья", True), ("note", "Что купили", False), ("spender", "Кто потратил", False)] %}
+{% block content %}
+<div class="card">
+  <h1>Проверьте колонки таблицы</h1>
+  <p class="muted">Файл «{{ file_name }}». Мы угадали, что где лежит, — поправьте, если ошиблись.</p>
+  <form method="post" action="/budget-table">
+    <input type="hidden" name="csrf_token" value="{{ current.csrf_token }}">
+    <input type="hidden" name="file_name" value="{{ file_name }}">
+    <input type="hidden" name="file_b64" value="{{ file_b64 }}">
+    <div class="row">
+      {% for field, title, required in fields %}
+      <label>{{ title }}
+        <select name="{{ field }}" {{ 'required' if required }}>
+          {% if not required %}<option value="">— нет такой колонки —</option>{% endif %}
+          {% for column in columns %}
+          <option value="{{ column }}" {{ 'selected' if guess[field] == column }}>{{ column }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      {% endfor %}
+    </div>
+    <button type="submit">Сопоставить с выписками</button>
+  </form>
+</div>
+<div class="card">
+  <h2>Первые строки таблицы</h2>
+  <div class="table-wrap">
+  <table>
+    <thead><tr>{% for column in columns %}<th>{{ column }}</th>{% endfor %}</tr></thead>
+    <tbody>
+    {% for record in preview %}
+    <tr>{% for column in columns %}<td>{{ record[column] if record[column] is not none }}</td>{% endfor %}</tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+{% endblock %}

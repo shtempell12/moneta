@@ -59,8 +59,10 @@ class StatementFormatError(ValueError):
     """The file cannot be read as a statement; the message is safe to show to the user."""
 
 
-def read_table(content: bytes, file_name: str) -> pd.DataFrame:
-    """Read a CSV or Excel file into a table with the header row detected automatically."""
+def read_table(
+    content: bytes, file_name: str, header_hints: tuple[str, ...] = _HEADER_HINTS
+) -> pd.DataFrame:
+    """Read a CSV, Excel or PDF file into a table with the header row found by `header_hints`."""
     if file_name.lower().endswith(".pdf"):
         raw = _read_pdf(content)
     elif file_name.lower().endswith((".xlsx", ".xlsm")):
@@ -79,7 +81,7 @@ def read_table(content: bytes, file_name: str) -> pd.DataFrame:
     else:
         raise StatementFormatError("Поддерживаются файлы CSV, Excel (.xlsx) и PDF")
 
-    header_index = _find_header_row(raw)
+    header_index = _find_header_row(raw, header_hints)
     table = raw.iloc[header_index + 1 :].reset_index(drop=True)
     table.columns = [str(name).strip() for name in raw.iloc[header_index]]
     table.attrs["first_data_line"] = header_index + 2
@@ -164,10 +166,10 @@ def _detect_separator(text: str) -> str:
         return ";"
 
 
-def _find_header_row(raw: pd.DataFrame) -> int:
+def _find_header_row(raw: pd.DataFrame, hints: tuple[str, ...]) -> int:
     for index in range(min(_HEADER_SEARCH_ROWS, len(raw))):
         cells = " ".join(str(value).lower() for value in raw.iloc[index].tolist())
-        if sum(hint in cells for hint in _HEADER_HINTS) >= 2:
+        if sum(hint in cells for hint in hints) >= 2:
             return index
     raise StatementFormatError(
         "Не нашли в файле таблицу операций: нужны колонки с датой, суммой и описанием"
