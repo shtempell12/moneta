@@ -1,4 +1,8 @@
-"""H-ML1 evaluation: train on a user's earlier months, check on the last one.
+"""H-ML1 evaluation: every month after the first is checked, trained on the months before it.
+
+This is how the service is used: in October it knows only what the user did before October.
+Checking every month rather than only the last one gives several times more test purchases
+from the same data.
 
 Only expenses are checked, and transfers are left out by the hypothesis boundary (they are
 counted separately). A transaction a categorizer has no opinion about counts as a miss:
@@ -16,6 +20,7 @@ from research.dataset import LabeledTransaction
 
 @dataclass(frozen=True)
 class Split:
+    month: date
     train: list[LabeledTransaction]
     test: list[LabeledTransaction]
     # Expenses of the test month left out by the hypothesis boundary (transfers).
@@ -38,20 +43,30 @@ class UserResult:
         return self.correct / self.total if self.total else 0.0
 
 
-def split_last_month(rows: Sequence[LabeledTransaction], history_days: int | None = None) -> Split:
-    """Last calendar month of the user's data is the test; earlier rows are the training.
+def split_months(
+    rows: Sequence[LabeledTransaction], history_days: int | None = None
+) -> list[Split]:
+    """One split per calendar month except the first: that month is the test,
+    earlier rows are the training.
 
-    `history_days` keeps only that much history before the test month (14, 30, 60…),
+    `history_days` keeps only that much history before each test month (14, 30, 60…),
     to see how accuracy depends on how long the user has used the service.
     """
-    test_month = max(row.date for row in rows).replace(day=1)
-    since = test_month - timedelta(days=history_days) if history_days else date.min
-    expenses = [row for row in rows if row.date >= test_month and row.amount < 0]
-    return Split(
-        train=[row for row in rows if since <= row.date < test_month],
-        test=[row for row in expenses if not row.is_transfer],
-        transfers=sum(row.is_transfer for row in expenses),
-    )
+    months = sorted({row.date.replace(day=1) for row in rows})
+    ends = [*months[1:], date.max]
+    splits = []
+    for month, next_month in zip(months[1:], ends[1:], strict=True):
+        since = month - timedelta(days=history_days) if history_days else date.min
+        expenses = [row for row in rows if month <= row.date < next_month and row.amount < 0]
+        splits.append(
+            Split(
+                month=month,
+                train=[row for row in rows if since <= row.date < month],
+                test=[row for row in expenses if not row.is_transfer],
+                transfers=sum(row.is_transfer for row in expenses),
+            )
+        )
+    return splits
 
 
 def mixed_merchants(train: Sequence[LabeledTransaction]) -> set[str]:
@@ -72,30 +87,31 @@ def evaluate(
 
     results = []
     for user, user_rows in sorted(by_user.items()):
-        split = split_last_month(user_rows, history_days)
+        splits = split_months(user_rows, history_days)
         ids = category_ids(user_rows)
-        mixed = mixed_merchants(split.train)
         for name, build in APPROACHES.items():
-            categorizer = build(split.train, ids)
-            predictions = [categorizer.predict(features(row)) for row in split.test]
-            hits = [
-                prediction is not None and prediction.category_id == ids[row.category]
-                for row, prediction in zip(split.test, predictions, strict=True)
-            ]
+            total = correct = answered = mixed_total = mixed_correct = 0
+            for split in splits:
+                categorizer = build(split.train, ids)
+                mixed = mixed_merchants(split.train)
+                for row in split.test:
+                    prediction = categorizer.predict(features(row))
+                    hit = prediction is not None and prediction.category_id == ids[row.category]
+                    total += 1
+                    correct += hit
+                    answered += prediction is not None
+                    mixed_total += row.merchant in mixed
+                    mixed_correct += hit and row.merchant in mixed
             results.append(
                 UserResult(
                     user=user,
                     approach=name,
-                    total=len(split.test),
-                    correct=sum(hits),
-                    answered=sum(prediction is not None for prediction in predictions),
-                    mixed_total=sum(row.merchant in mixed for row in split.test),
-                    mixed_correct=sum(
-                        hit
-                        for row, hit in zip(split.test, hits, strict=True)
-                        if row.merchant in mixed
-                    ),
-                    transfers=split.transfers,
+                    total=total,
+                    correct=correct,
+                    answered=answered,
+                    mixed_total=mixed_total,
+                    mixed_correct=mixed_correct,
+                    transfers=sum(split.transfers for split in splits),
                 )
             )
     return results
