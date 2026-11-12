@@ -32,7 +32,7 @@ def main(argv: Sequence[str]) -> None:
     checked = {row.user: row.total for row in per_user if row.approach == "bank"}
     transfers = {row.user: row.transfers for row in per_user if row.approach == "bank"}
     print(
-        f"Проверочный месяц: трат {sum(checked.values())}, "
+        f"Проверочные месяцы (все, кроме первого): трат {sum(checked.values())}, "
         f"переводов вне границы гипотезы {sum(transfers.values())}\n"
     )
     _print_summary("Вся история", per_user)
