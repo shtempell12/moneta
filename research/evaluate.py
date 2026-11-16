@@ -47,13 +47,10 @@ def main(argv: Sequence[str]) -> None:
 
 def _print_summary(title: str, results: Sequence[UserResult]) -> None:
     print(f"{title}:")
-    print(f"{'подход':<15}{'точность':>10}{'польз. ≥70%':>14}{'смешанные':>12}")
+    print(f"{'подход':<15}{'точность':>10}{'смешанные':>12}")
     for summary in summarize(results):
         mixed = f"{summary.mixed_accuracy:.0%}" if summary.mixed_accuracy is not None else "—"
-        print(
-            f"{summary.approach:<15}{summary.accuracy:>10.0%}"
-            f"{summary.users_at_70:>14.0%}{mixed:>12}"
-        )
+        print(f"{summary.approach:<15}{summary.accuracy:>10.0%}{mixed:>12}")
 
 
 def _write(path: Path, rows: list[dict[str, object]]) -> None:
