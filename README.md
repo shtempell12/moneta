@@ -41,7 +41,7 @@ Python 3.12, FastAPI, PostgreSQL 16, Docker Compose. Зависимости — 
 Нужны Docker Desktop и uv.
 
 ```bash
-cp .env.example .env    # затем поменяй пароли в .env
+cp .env.example .env    
 make up                 # поднимает app + Postgres и применяет миграции
 curl localhost:8000/health
 ```
