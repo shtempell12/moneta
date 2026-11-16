@@ -121,13 +121,14 @@ def evaluate(
 class Summary:
     approach: str
     accuracy: float
-    users_at_70: float
     mixed_accuracy: float | None
 
 
 def summarize(results: Sequence[UserResult]) -> list[Summary]:
-    """Per approach: accuracy over all checked transactions, share of users with ≥ 70%
-    (the hypothesis asks for 80% of users), accuracy on mixed merchants."""
+    """Per approach: accuracy over all checked transactions and on mixed merchants.
+
+    Accuracy per user is in the UserResult rows.
+    """
     summaries = []
     for name in APPROACHES:
         rows = [result for result in results if result.approach == name]
@@ -137,7 +138,6 @@ def summarize(results: Sequence[UserResult]) -> list[Summary]:
             Summary(
                 approach=name,
                 accuracy=sum(row.correct for row in rows) / total if total else 0.0,
-                users_at_70=sum(row.accuracy >= 0.7 for row in rows) / len(rows) if rows else 0.0,
                 mixed_accuracy=(
                     sum(row.mixed_correct for row in rows) / mixed_total if mixed_total else None
                 ),
